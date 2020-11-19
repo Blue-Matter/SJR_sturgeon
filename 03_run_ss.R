@@ -1,4 +1,6 @@
 
+devtools::install_github("r4ss/r4ss") # version 1.40.1
+
 run_ss <- function(dir) {
   curdir <- getwd()
   on.exit(setwd(curdir))
@@ -22,7 +24,7 @@ plot_ss <- function(dir) {
 
 
 dir <- "01_base"
-
+dir <- "02_agesel"
 run_ss(dir)
 
 replist <- plot_ss(dir)
