@@ -9,3 +9,5 @@ retroModels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", "retrospectiv
 retroSummary <- SSsummarize(retroModels)
 endyrvec <- retroSummary$endyrs + seq(0, -10, -2)
 SSplotComparisons(retroSummary, endyrvec = endyrvec, legendlabels = paste("Retro", endyrvec))
+
+SSmohnsrho(retroSummary, endyrvec = endyrvec)
