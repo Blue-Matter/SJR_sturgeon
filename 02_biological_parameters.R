@@ -35,7 +35,8 @@ t0 <- -0.6
 
 vb(1, 264, 0.04, -0.94)
 vb(1, 230, 0.06, -0.6)
-### Natural mortality (Then et al. 2015)
+
+### Natural mortality (Then et al. 2015; Hoenig, 1983; Hewitt and Hoenig, 2005)
 ## Stewart et al. 2015
 ## Female max age = 51
 ## Male max age = 43
@@ -48,11 +49,22 @@ Then_M <- function(maxage, Linf, K) {
   }
 }
 
+Hoenig_M <- function(maxage) 3/maxage
+Hewitt_M <- function(maxage) 4.22/maxage
+
 Then_M(51) # 0.13
 Then_M(43) # 0.16
 
 Then_M(Linf = 264, K = 0.04) # 0.06
 Then_M(Linf = 230, K = 0.06) # 0.09
+
+Hoenig_M(51) # 0.06
+Hoenig_M(43) # 0.07
+
+Hewitt_M(51) # 0.08
+Hewitt_M(43) # 0.10
+
+
 
 
 ### Maturity
@@ -64,5 +76,5 @@ Then_M(Linf = 230, K = 0.06) # 0.09
 # Get the slope parameter given the length of 50% maturity (x50), another length (x) 
 # and its corresponding maturity (m)
 mat_slope <- function(x, m, x50) log((1-m)/m)/(x - x50)
-
 mat_slope(160, 0.05, 175)
+
