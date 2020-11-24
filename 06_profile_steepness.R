@@ -6,9 +6,8 @@ dir <- "01_base_profh"
 h <- seq(0.25, 0.7, 0.05)
 prof <- r4ss::SS_profile(dir = file.path(getwd(), "SS", dir),
                          linenum = 115, profilevec = h, extras = "-nox -nohess")
-profilemodels <- SSgetoutput(dirvec = file.path(getwd(), "SS", dir), 
-                             keyvec = 1:length(h))
-profilesum <- SSsummarize(profilemodels)
+profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyvec = 1:length(h))
+profilesum <- r4ss::SSsummarize(profilemodels)
 r4ss::SSplotProfile(profilesum)
 
-SSplotComparisons(profilesum, legendlabels = paste("h =", h))
+r4ss::SSplotComparisons(profilesum, legendlabels = paste("h =", h))

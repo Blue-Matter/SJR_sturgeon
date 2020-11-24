@@ -78,3 +78,87 @@ Hewitt_M(43) # 0.10
 mat_slope <- function(x, m, x50) log((1-m)/m)/(x - x50)
 mat_slope(160, 0.05, 175)
 
+
+
+
+### Steepness
+## Mangel et al. 2010 using fecundity, spawning frequency, and larval survival
+## Set spawning frequency = 0.25 (once every four years)
+steepness_fn <- function(seed = 1, M = 0.06, N = 200, spawn_freq = 1, 
+                         wt_a = 2e-5, wt_b = 2.72, Linf = 264, K = 0.04, t0 = -0.94, 
+                         sex_ratio = 0.5, surv_larval = 0.25,
+                         mat_at_age) {
+  maxage <- 60
+  set.seed(seed)
+  U <- runif(N)
+  age <- -log(U)/M
+  len <- Linf * (1 - exp(-K * (age - t0)))
+  wt <- wt_a * len ^ wt_b
+  
+  age_round <- ifelse(age >= maxage, maxage, round(age))
+  p_mat <- mat_at_age[age_round + 1] # Vector includes age-0
+  
+  tot_fecundity <- sum(p_mat * wt)
+  wt_pop <- sum(wt)
+  
+  #w0 <- wt_a * (Linf * (1 - exp(K * t0))) ^ wt_b
+  alpha <- surv_larval * spawn_freq * tot_fecundity / wt_pop
+  
+  calc_SPR0 <- function() {
+    len_age <- Linf * (1 - exp(-K * (c(0:maxage) - t0)))
+    wt_age <- wt_a * len_age ^ wt_b
+    NPR <- numeric(maxage + 1)
+    NPR[1] <- 1
+    for(a in 2:(maxage + 1)) NPR[a] <- NPR[a-1] * exp(-M)
+    NPR[maxage + 1] <- 1/(1 - exp(-M))
+    SPR <- sum(NPR * wt_age * mat_at_age)
+    return(SPR)
+  }
+  
+  SPR0 <- calc_SPR0()
+  h <- alpha * (1 - sex_ratio) * SPR0/(4 + alpha * (1 - sex_ratio) * SPR0)
+  return(list(h = h, alpha = alpha))
+}
+
+get_mat_age <- function(replist) {
+  if(missing(replist)) {
+    replist <- r4ss::SS_output(file.path(getwd(), "SS", "01_base"))
+  }
+  Len_Mat <- filter(replist$endgrowth, Sex == 1)$Len_Mat
+  return(Len_Mat)
+}
+
+mat_at_age <- get_mat_age(replist) 
+
+
+set.seed(234)
+nsim <- 200
+seeds <- sample(1:4000000, size = nsim)
+mean_M <- 0.06
+sd_M <- 0.4
+M <- rlnorm(nsim, log(mean_M) - 0.5 * sd_M^2, sd_M)
+
+
+# Steepness as a function of larval survival
+surv <- seq(0.01, 0.99, 0.01)
+sims <- vapply(surv, function(x) {
+  run_sim <- Map(steepness_fn, seed = seeds, M = M, 
+                 MoreArgs = list(mat_at_age = mat_at_age, N = 500, spawn_freq = 0.25,
+                                 sex_ratio = 0.5, surv_larval = x))
+  h <- run_sim %>% sapply(getElement, "h")
+  return(c(mean(h), sd(h)))
+}, numeric(2))
+
+plot(surv, sims[1, ], xlab = "Larval survival", ylab = "Mean steepness")
+plot(surv, sims[2, ], xlab = "Larval survival", ylab = "SD steepness")
+plot(surv, sims[2, ]/sims[1, ], xlab = "Larval survival", ylab = "CV steepness")
+
+# Get distribution of steepness
+run_sim <- Map(steepness_fn, seed = seeds, M = M, 
+               MoreArgs = list(mat_at_age = mat_at_age, N = 500, spawn_freq = 0.25,
+                               sex_ratio = 0.5, surv_larval = 0.1))
+h <- run_sim %>% sapply(getElement, "h")
+hist(h)
+
+alpha <- run_sim %>% sapply(getElement, "alpha")
+hist(alpha)
