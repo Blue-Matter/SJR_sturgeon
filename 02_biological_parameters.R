@@ -124,12 +124,13 @@ get_mat_age <- function(replist) {
   if(missing(replist)) {
     replist <- r4ss::SS_output(file.path(getwd(), "SS", "01_base"))
   }
-  Len_Mat <- filter(replist$endgrowth, Sex == 1)$Len_Mat
+  Len_Mat <- dplyr::filter(replist$endgrowth, Sex == 1)$Len_Mat
   return(Len_Mat)
 }
 
-mat_at_age <- get_mat_age(replist) 
-
+mat_at_age <- get_mat_age() 
+data.frame(age = 1:length(mat_at_age) - 1, mat = mat_at_age) %>% write.csv("processed_data/mat_age.csv")
+data.frame(age = 1:length(mat_at_age) - 1, mat = mat_at_age) %>% plot(mat ~ age, .)
 
 set.seed(234)
 nsim <- 200
@@ -162,3 +163,19 @@ hist(h)
 
 alpha <- run_sim %>% sapply(getElement, "alpha")
 hist(alpha)
+
+
+# Find the max F constraint given the spawning frequency
+get_maxF <- function(sf = 0.25, M = 0.06) {
+  
+  F_solver <- function(logF, sf, M) {
+    FF <- exp(logF)
+    Z <- FF + M
+    FF/Z * (1 - exp(-Z)) - sf
+  }
+  
+  Fout <- uniroot(F_solver, log(c(1e-4, 3)), sf = sf, M = M)$root
+  c(Baranov = exp(Fout), Simple = -log(1-sf))
+}
+
+get_maxF(0.5)
