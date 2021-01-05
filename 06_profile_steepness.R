@@ -11,3 +11,5 @@ profilesum <- r4ss::SSsummarize(profilemodels)
 r4ss::SSplotProfile(profilesum)
 
 r4ss::SSplotComparisons(profilesum, legendlabels = paste("h =", h))
+dev.off()
+r4ss::SSplotComparisons(profilesum, legendlabels = paste("h =", h), subplots = 3, btarg = -1, minbthresh = -1)
