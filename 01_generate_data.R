@@ -13,27 +13,19 @@ endyr <- 2020
 # SS assumes units of abundance in 10^3 fish and weight in metric tonnes
 generate_catch <- function() {
   
-  curr_catch <- readxl::read_excel(file.path(data_path, "sturgeon_2020.xlsx")) %>% 
+  curr_catch <- readxl::read_excel(file.path(data_path, "sturgeon summary table start updated Dec 16.xlsx")) %>% 
     group_by(year) %>% summarise(Harvest = sum(Harvest))
   c_df <- data.frame(Year = curr_catch$year, Season = 1, Fleet = 1, Catch = curr_catch$Harvest/1e3, SE = 0.01)
   
-  #curr_catch2 <- readxl::read_excel(file.path(data_path, "sturgeon_2020.xlsx"), sheet = 3) %>% filter(Harvested == 1) %>%
-  #  group_by(YYYY) %>% summarise(Catch = sum(Count))
-
-  #c_catch <- numeric(length(startyr:endyr))
-  #c_catch[match(curr_catch$year, startyr:endyr)] <- curr_catch$Harvest
-  #c_catch[c_catch <= 0] <- 1e-4
-  #c_df <- data.frame(Year = startyr:endyr, Season = 1, Fleet = 1, Catch = c_catch, SE = 0.01)
-  
   hist_catch <- readxl::read_excel(file.path(data_path, "Table_4_Bradford_2016.xlsx"))
-  h_df <- data.frame(Year = hist_catch$Year, Season = 1, Fleet = 2, Catch = hist_catch$Catch, SE = 0.01) %>% filter(Catch > 0)
-    
-  #h_catch <- numeric(length(startyr:endyr))
-  #h_catch[match(hist_catch$Year, startyr:endyr)] <- hist_catch$Catch * 1e3 # Need to convert to proper units
-  #h_catch[h_catch <= 0] <- 1e-4
-  #h_df <- data.frame(Year = startyr:endyr, Season = 1, Fleet = 2, Catch = h_catch, SE = 0.01)
+  h_df <- data.frame(Year = hist_catch$Year, Season = 1, Fleet = 2, Catch = hist_catch$SJR, SE = 0.01) %>% 
+    dplyr::filter(Catch > 0)
   
-  return(rbind(c_df, h_df))
+  minas_df <- data.frame(Year = hist_catch$Year, Season = 1, Fleet = 3, 
+                         Catch = hist_catch$NB_Fundy + hist_catch$NS_Fundy, SE = 0.01) %>% 
+    dplyr::filter(Catch > 0)
+  
+  return(rbind(c_df, h_df, minas_df))
 }
 
 catch <- generate_catch()
@@ -51,26 +43,26 @@ cpue <- generate_cpue()
 write.csv(cpue, "processed_data/cpue.csv")
 
 
-generate_CAL <- function(bins = seq(40, 280, 5), month = 6) {
+generate_CAL_SJR <- function(bins = seq(40, 280, 5), month = 6) {
   
   sex_legend <- data.frame(Sex = c("f", "F", "j", "J", "m", "M", "M / J", "SF", "x", "X"),
                            Sout = c("F", "F", "J", "J", "M", "M", "J", "F", "X", "X"))
   
-  CAL <- readxl::read_excel(file.path(data_path, "sturgeon_2020.xlsx"), sheet = 3) %>% left_join(sex_legend, by = "Sex") %>% 
-    filter(Sout == "F" | Sout == "M")
+  CAL <- readxl::read_excel(file.path(data_path, "sturgeon summary table start updated Dec 16.xlsx"), sheet = 3, range = "A1:P6346") %>% 
+    left_join(sex_legend, by = "Sex") %>% dplyr::filter(Sout == "F" | Sout == "M")
   CAL$`TL(cm)`[is.na(CAL$`TL(cm)`)] <- CAL$`TL(in)`[is.na(CAL$`TL(cm)`)] * 2.54
   CAL <- CAL[!is.na(CAL$`TL(cm)`), ]
-  CAL <- filter(CAL, `TL(cm)` <= max(bins) & `TL(cm)` >= min(bins))
+  CAL <- dplyr::filter(CAL, `TL(cm)` <= max(bins) & `TL(cm)` >= min(bins))
   
   ### Harvested length comps
-  CAL_harvest <- filter(CAL, Harvested == 1) %>% 
+  CAL_harvest <- dplyr::filter(CAL, Harvested == 1) %>% 
     mutate(Bin = cut(`TL(cm)`, breaks = bins, labels = bins[-length(bins)], right = FALSE) %>% factor(levels = bins))
   CAL_h <- reshape2::dcast(CAL_harvest, YYYY ~ Sout + Bin, value.var = "Harvested", fun.aggregate = sum, drop = FALSE)
   CAL_hf <- CAL_h[, match(c("YYYY", paste0("F_", bins)), colnames(CAL_h))]
   CAL_hm <- CAL_h[, match(c("YYYY", paste0("M_", bins)), colnames(CAL_h))]
   
   ### Released length comps
-  CAL_rel <- filter(CAL, Harvested != 1) %>% 
+  CAL_rel <- dplyr::filter(CAL, Harvested != 1) %>% 
     mutate(Bin = cut(`TL(cm)`, breaks = bins, labels = bins[-length(bins)], right = FALSE) %>% factor(levels = bins),
            Counter = 1L)
   CAL_r <- reshape2::dcast(CAL_rel, YYYY ~ Sout + Bin, value.var = "Counter", fun.aggregate = sum, drop = FALSE)
@@ -86,8 +78,8 @@ generate_CAL <- function(bins = seq(40, 280, 5), month = 6) {
   
   sex_ratio <- full_join(sexratio_harvest, sexratio_rel, by = c("YYYY", "Sout")) %>% mutate(n = n_rel + n_harvest)
   
-  sex_ratio_harvest <- filter(sex_ratio, Sout == "F")$n_harvest/filter(sex_ratio, Sout == "M")$n_harvest
-  sex_ratio_catch <- filter(sex_ratio, Sout == "F")$n/filter(sex_ratio, Sout == "M")$n
+  sex_ratio_harvest <- dplyr::filter(sex_ratio, Sout == "F")$n_harvest/dplyr::filter(sex_ratio, Sout == "M")$n_harvest
+  sex_ratio_catch <- dplyr::filter(sex_ratio, Sout == "F")$n/dplyr::filter(sex_ratio, Sout == "M")$n
   plot(2007:2020, sex_ratio_harvest)
   plot(2007:2020, sex_ratio_catch)
   
@@ -111,7 +103,62 @@ generate_CAL <- function(bins = seq(40, 280, 5), month = 6) {
       sex_code = sex_code, part_code = part_code) %>% do.call(rbind, .)
 }
 
-# Retain only
-CAL <- generate_CAL(bins = seq(130, 280, 5)) %>% filter(Partition == 2)
-write.csv(CAL, "processed_data/CAL_retain.csv")
+# Retain only # Lower length bin at 130 but decrease for Minas bay length comp
+CAL_SJR <- generate_CAL_SJR(bins = seq(45, 280, 5)) %>% dplyr::filter(Partition == 2)
 
+head(CAL_SJR)
+
+generate_CAL_Minas <- function(bins = seq(80, 280, 5), month = 6, Year_superperiod = 2007:2010) {
+  CAL <- read.csv(file.path(data_path, "Dadswell_Fig_4.csv")) %>% mutate(Bin = (Bin - 1) * 2.5 + 45)
+  
+  CAL_new <- vapply(1:length(bins), function(i) {
+    if(i == 1) {
+      out <- dplyr::filter(CAL, Bin <= bins[i])
+    } else {
+      out <- dplyr::filter(CAL, Bin <= bins[i], Bin > bins[i-1])
+    }
+    out %>% getElement("N") %>% sum()
+  }, numeric(1))
+  
+  plot(bins, CAL_new, typ = 'o')
+  
+  out <- data.frame(Year = Year_superperiod, 
+                    Month = c(-month, rep(month, length(Year_superperiod) - 2), -month), 
+                    Fleet = c(3, rep(-3, length(Year_superperiod) - 1)), 
+                    Sex = 0, Partition = 0, 
+                    Nsamp = sum(CAL_new))
+  
+  CAL_out <- matrix(0, nrow = nrow(out), ncol = length(bins) * 2) %>% 
+    structure(dimnames = list(NULL, c(paste0("F_", bins), paste0("M_", bins))))
+  CAL_out[, 1:length(bins)] <- matrix(CAL_new, nrow(CAL_out), length(bins), byrow = TRUE)
+  
+  cbind(out, CAL_out) %>% as.data.frame()
+}
+CAL_Minas <- generate_CAL_Minas(bins = seq(45, 280, 5))
+
+
+rbind(CAL_SJR, CAL_Minas) %>% write.csv("processed_data/CAL_retain.csv")
+
+
+
+
+generate_CAA_Minas <- function(month = 6, Year_superperiod = 2005:2009) {
+  CAA <- read.csv(file.path(data_path, "Dadswell_Fig_7.csv"))
+  
+  plot(N ~ Age, CAA, typ = 'o')
+  
+  out <- data.frame(Year = Year_superperiod, 
+                    Month = c(-month, rep(month, length(Year_superperiod) - 2), -month), 
+                    Fleet = c(3, rep(-3, length(Year_superperiod) - 1)), 
+                    Sex = 0, Partition = 0, Age_Err = 0,
+                    Lbin_lo = -1, Lbin_hi = -1,
+                    Nsamp = sum(CAA$N))
+  
+  CAL_out <- matrix(0, nrow = nrow(out), ncol = length(CAA$Age) * 2) %>% 
+    structure(dimnames = list(NULL, c(paste0("F_", CAA$Age), paste0("M_", CAA$Age))))
+  CAL_out[, 1:length(CAA$Age)] <- matrix(CAA$N, nrow(CAL_out), nrow(CAA), byrow = TRUE)
+  
+  cbind(out, CAL_out) %>% as.data.frame()
+}
+CAA_Minas <- generate_CAA_Minas()
+write.csv(CAA_Minas, "processed_data/CAA_Minas.csv")
