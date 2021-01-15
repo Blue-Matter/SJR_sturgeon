@@ -32,16 +32,6 @@ catch <- generate_catch()
 write.csv(catch, "processed_data/catch.csv")
 
 
-generate_cpue <- function() {
-  cpue <- readxl::read_excel(file.path(data_path, "sturgeon_2020.xlsx"), sheet = 2) %>% mutate(cpue = catch/nets) %>%
-    group_by(year) %>% summarise(catch = sum(catch), nets = sum(nets), obs = mean(cpue), SE = sd(cpue), ln_SE = sd(log(cpue)[!is.infinite(log(cpue))])) %>% 
-    mutate(CV = SE/obs)
-  return(data.frame(Year = cpue$year, Month = 6, Fleet = 3, Obs = cpue$obs, SE = cpue$ln_SE))
-}
-
-cpue <- generate_cpue()
-write.csv(cpue, "processed_data/cpue.csv")
-
 
 generate_CAL_SJR <- function(bins = seq(40, 280, 5), month = 6) {
   
