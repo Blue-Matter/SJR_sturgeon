@@ -14,7 +14,7 @@ endyr <- 2020
 generate_catch <- function() {
   
   curr_catch <- readxl::read_excel(file.path(data_path, "sturgeon summary table start updated Dec 16.xlsx")) %>% 
-    group_by(year) %>% summarise(Harvest = sum(Harvest))
+    group_by(year) %>% summarise(Harvest = sum(M_harvest + F_harvest + X_harvest))
   c_df <- data.frame(Year = curr_catch$year, Season = 1, Fleet = 1, Catch = curr_catch$Harvest/1e3, SE = 0.01)
   
   hist_catch <- readxl::read_excel(file.path(data_path, "Table_4_Bradford_2016.xlsx"))
@@ -30,6 +30,38 @@ generate_catch <- function() {
 
 catch <- generate_catch()
 write.csv(catch, "processed_data/catch.csv")
+
+
+# SS assumes units of abundance in 10^3 fish and weight in metric tonnes
+generate_catch_by_sex <- function() {
+  curr_catch <- readxl::read_excel(file.path(data_path, "sturgeon summary table start updated Dec 16.xlsx")) 
+  
+  sex_ratio_all <- curr_catch %>% summarise(ratio_F = sum(F_harvest)/sum(F_harvest + M_harvest))
+  sex_ratio_annual <- curr_catch %>% group_by(year) %>% summarise(ratio_F = sum(F_harvest)/sum(F_harvest + M_harvest))
+  sex_ratio_annual$ratio_F[1] <- 0.5
+  
+  curr_catch <- curr_catch %>% dplyr::left_join(sex_ratio_annual, by = "year") %>% group_by(year) %>%
+    summarise(M_harvest = sum(M_harvest + (1 - ratio_F) * X_harvest),
+              F_harvest = sum(F_harvest + ratio_F * X_harvest)) 
+  
+  c_female <- data.frame(Year = curr_catch$year, Season = 1, Fleet = 1, Catch = curr_catch$F_harvest/1e3, SE = 0.01)
+  c_male <- data.frame(Year = curr_catch$year, Season = 1, Fleet = 2, Catch = curr_catch$M_harvest/1e3, SE = 0.01)
+
+  hist_catch <- readxl::read_excel(file.path(data_path, "Table_4_Bradford_2016.xlsx"))
+  h_female <- data.frame(Year = hist_catch$Year, Season = 1, Fleet = 3, Catch = 0.55 * hist_catch$SJR, SE = 0.01) %>% 
+    dplyr::filter(Catch > 0)
+  h_male <- data.frame(Year = hist_catch$Year, Season = 1, Fleet = 4, Catch = 0.45 * hist_catch$SJR, SE = 0.01) %>% 
+    dplyr::filter(Catch > 0)
+  
+  minas_df <- data.frame(Year = hist_catch$Year, Season = 1, Fleet = 5, 
+                         Catch = hist_catch$NB_Fundy + hist_catch$NS_Fundy, SE = 0.01) %>% 
+    dplyr::filter(Catch > 0)
+  
+  return(rbind(c_female, c_male, h_female, h_male, minas_df))
+}
+
+catch_by_sex <- generate_catch_by_sex()
+write.csv(catch_by_sex, "processed_data/catch_by_sex.csv")
 
 
 
