@@ -62,17 +62,6 @@ fishery <- readxl::read_excel(file.path(data_path, "sturgeon summary table start
   mutate(cpue_plus_tiny = cpue + 1e-4, log_cpue = log(cpue_plus_tiny), Month = as.factor(month),
          ln_Flow = log(Flow), ln_Flow_std = ln_Flow - mean(ln_Flow), ln_Flow_Z = ln_Flow_std/sd(ln_Flow))
 
-# Remove zero sets in May
-fishery2 <- dplyr::filter(fishery, !(month == 5 & cpue == 0))
-
-mean_with <- dplyr::filter(fishery, month == 5) %>% group_by(year) %>% summarise(sd = sd(cpue), cpue = mean(cpue))
-mean_without <- dplyr::filter(fishery2, month == 5) %>% group_by(year) %>% summarise(sd = sd(cpue), cpue = mean(cpue))
-
-plot(cpue ~ year, mean_with, typ = 'o', xlab = "")
-lines(cpue ~ year, mean_without, col = "red", typ = "o")
-legend("topright", c("Include zeros in May", "Exclude zeros in May"), col = c("black", "red"), pch = 1)
-
-
 # number of nets
 n_nets <- group_by(fishery, year, month) %>% summarise(nets_per_day = mean(nets), nets = sum(nets)) %>% 
   group_by(year) %>% mutate(percent_nets = nets/sum(nets), Month = as.factor(month))
@@ -84,7 +73,6 @@ ggsave("figures/data/nets_per_day.png", height = 3, width = 4)
 # percent of empty nets
 empty_nets <- group_by(fishery, year, month) %>% summarise(percent_empty = sum(!cpue)/n()) %>%
   mutate(Month = as.factor(month))
-  #group_by(year) %>% mutate(percent_nets = nets/sum(nets), Month = as.factor(month))
 ggplot(empty_nets, aes(year, percent_empty, colour = Month)) + geom_line() + geom_point() + 
   facet_wrap(~ Month) + gfplot::theme_pbs() + labs(y = "Empty nets (%)")
 ggsave("figures/data/empty_nets.png", height = 3, width = 4)
@@ -118,7 +106,7 @@ ggplot(fishery, aes(year, cpue, colour = Month)) + facet_wrap(~ Month) + geom_po
   gfplot::theme_pbs() + labs(y = "Observed CPUE")
 ggsave("figures/data/daily_CPUE.png", height = 3, width = 4)
 
-cpue_val <- fishery2 %>% group_by(year, Month) %>% 
+cpue_val <- fishery %>% group_by(year, Month) %>% 
   summarise(lower = exp(mean(log_cpue) - 2 * sd(log_cpue)), 
             upper = exp(mean(log_cpue) + 2 * sd(log_cpue)), 
             obs = mean(log_cpue, na.rm = TRUE) %>% exp())
@@ -129,7 +117,7 @@ ggplot(cpue_val, aes(year, obs, colour = Month)) +
   labs(y = "Observed CPUE")
 ggsave("figures/data/CPUE_month.png", height = 3, width = 4)
 
-cpue_val <- fishery2 %>% group_by(year, Month) %>% 
+cpue_val <- fishery %>% group_by(year, Month) %>% 
   summarise(lower = mean(log_cpue) - 2 * sd(log_cpue), 
             upper = mean(log_cpue) + 2 * sd(log_cpue), 
             obs = mean(log_cpue, na.rm = TRUE))
@@ -143,68 +131,57 @@ ggsave("figures/data/log_CPUE_month.png", height = 3, width = 4)
 
 
 ############ Run some linear models
-data_mod <- fishery2 %>% dplyr::filter(mm != 9, year >= 2009)
-m1 <- lm(log_cpue ~ as.factor(year), data = data_mod)
-m2 <- lm(log_cpue ~ yy + mm, data = data_mod)
-m3 <- lm(log_cpue ~ yy * mm, data = data_mod)
-m4 <- lm(log_cpue ~ yy + mm + ln_Flow_Z, data = data_mod)
-m5 <- lm(log_cpue ~ yy * mm + ln_Flow_Z, data = data_mod)
-AIC(m1, m2, m3, m4, m5)
+data_mod <- fishery %>% dplyr::filter(mm != 9, year >= 2009) %>% mutate(offset = log(nets))
 
-#m2c <- glm(catch ~ yy + mm, data = data_mod, family = "poisson")
-#m3c <- glm(catch ~ yy * mm, data = data_mod, family = "poisson")
-#m4 <- lm(log(cpue+0.001) ~ as.factor(year) + as.factor(month) + ETemp, data = data_mod)
-#m5 <- lm(log(cpue+0.001) ~ as.factor(year) + as.factor(month) + ETemp + Flow_std, data = data_mod)
-#m6c <- glm(catch ~ yy + mm + ln_Flow_std, data = data_mod, family = "poisson")
-#m7c <- glm(catch ~ yy * mm + ln_Flow_std, data = data_mod, family = "poisson")
+#m1q <- glm(catch ~ as.factor(year), data = data_mod, family = "quasipoisson", offset = offset)
+#m2q <- glm(catch ~ yy + mm, data = data_mod, family = "quasipoisson", offset = offset)
+#m3q <- glm(catch ~ yy * mm, data = data_mod, family = "quasipoisson", offset = offset)
+#m4q <- glm(catch ~ yy + mm + ln_Flow_Z, data = data_mod, family = "quasipoisson", offset = offset)
+#m5q <- glm(catch ~ yy * mm + ln_Flow_Z, data = data_mod, family = "quasipoisson", offset = offset)
+#AIC(m1q, m2q, m3q, m4q, m5q)
 
+m1nb <- MASS::glm.nb(catch ~ offset(offset) + as.factor(year), data = data_mod)
+m2nb <- MASS::glm.nb(catch ~ offset(offset) + yy + mm, data = data_mod)
+m3nb <- MASS::glm.nb(catch ~ offset(offset) + yy * mm, data = data_mod)
+m4nb <- MASS::glm.nb(catch ~ offset(offset) + yy + mm + ln_Flow_Z, data = data_mod)
+m5nb <- MASS::glm.nb(catch ~ offset(offset) + yy * mm + ln_Flow_Z, data = data_mod)
+AIC(m1nb, m2nb, m3nb, m4nb, m5nb)
+
+m1p <- glm(catch ~ as.factor(year), data = data_mod, family = "poisson", offset = offset)
+m2p <- glm(catch ~ yy + mm, data = data_mod, family = "poisson", offset = offset)
+m3p <- glm(catch ~ yy * mm, data = data_mod, family = "poisson", offset = offset)
+m4p <- glm(catch ~ yy + mm + ln_Flow_Z, data = data_mod, family = "poisson", offset = offset)
+m5p <- glm(catch ~ yy * mm + ln_Flow_Z, data = data_mod, family = "poisson", offset = offset)
+AIC(m1p, m2p, m3p, m4p, m5p)
+
+AIC(m1p, m2p, m3p, m4p, m5p, m1nb, m2nb, m3nb, m4nb, m5nb)
 
 # By year
-newdata <- data.frame(yy = data_mod$yy, mm = data_mod$mm,
-                      ln_Flow_Z = data_mod$ln_Flow_Z)
+newdata <- expand.grid(yy = unique(data_mod$yy), mm = factor(c(5, 7, 8)),
+                       ln_Flow_Z = mean(data_mod$ln_Flow_Z, na.rm = TRUE), 
+                       offset = mean(log(data_mod$nets)))
 
-generate_annual_value <- function(x) mean(x) %>% exp()
-generate_lower <- function(x) sd(x) %>% exp()
-generate_upper <- function(x) mean(x) %>% exp()
+obs_cpue <- summarise(group_by(data_mod, yy), val = mean(log_cpue) %>% exp() %>% `-`(0.001),
+                      sd = sd(log_cpue))
+annual_cpue <- mutate(newdata, 
+                      m3nb = predict(m3nb, newdata = newdata[, -3]), 
+                      m4nb = predict(m4nb, newdata = newdata),
+                      m5nb = predict(m5nb, newdata = newdata),
+                      m3p = predict(m3p, newdata = newdata[, -3]), 
+                      m4p = predict(m4p, newdata = newdata),
+                      m5p = predict(m5p, newdata = newdata)) %>%
+  reshape2::melt(c("yy", "mm", "ln_Flow_Z", "offset")) %>% group_by(variable, yy) %>% 
+  summarise(val = mean(value) %>% exp(), sd = sd(value)) %>%
+  rbind(data.frame(yy = obs_cpue$yy, variable = "obs", val = obs_cpue$val, sd = obs_cpue$sd)) %>% 
+  group_by(variable) %>% mutate(rel_val = val/mean(val))
 
-annual_cpue_sd <- data_mod %>% 
-  mutate(pred3 = predict(m3, newdata = newdata[, -3]), 
-         pred4 = predict(m4, newdata = newdata),
-         pred5 = predict(m5, newdata = newdata)) %>%
-  group_by(yy) %>% 
-  summarise(obs = sd(log_cpue), m3 = sd(pred3), m4 = sd(pred4), m5 = sd(pred5)) %>%
-  reshape2::melt(id.vars = "yy", variable.name = "type", value.name = "sd")
-matplot(annual_cpue_sd[, -1], typ = 'o')
-  
+write.csv(annual_cpue, "processed_data/cpue_series.csv")
 
-newdata_mu <- data.frame(yy = unique(data_mod$yy), mm = factor(7),
-                         ln_Flow_Z = mean(data_mod$ln_Flow_Z, na.rm = TRUE))
-
-annual_cpue_mu <- group_by(data_mod, yy) %>% 
-  summarise(obs = mean(log_cpue) %>% exp() %>% `-`(0.001)) %>%
-  mutate(m3 = predict(m3, newdata = newdata_mu[, -3]) %>% exp() %>% `-`(0.001), 
-         m4 = predict(m4, newdata = newdata_mu) %>% exp() %>% `-`(0.001),
-         m5 = predict(m5, newdata = newdata_mu) %>% exp() %>% `-`(0.001))
-matplot(annual_cpue_mu[, -1], typ = 'o')
-
-ss_cpue <- reshape2::melt(annual_cpue_mu, id.vars = "yy", variable.name = "type") %>% 
-  dplyr::left_join(annual_cpue_sd, by = c("yy", "type"))
-
-write.csv(ss_cpue, "processed_data/cpue_with_zeros.csv")
-write.csv(ss_cpue, "processed_data/cpue_without_zeros.csv")
-
-write.csv(ss_cpue, "processed_data/cpue_with_zeros_since_2009.csv")
-write.csv(ss_cpue, "processed_data/cpue_without_zeros_since_2009.csv")
+ggplot(annual_cpue %>% mutate(yy = as.numeric(yy)), aes(yy, sd, colour = variable)) + 
+  facet_wrap(~variable) + geom_line() + geom_point()
+ggplot(annual_cpue %>% mutate(yy = as.numeric(yy)), aes(yy, rel_val, colour = variable)) + 
+  facet_wrap(~variable) + geom_line() + geom_point()
 
 
-# Compare series
-series <- c("cpue_with_zeros", "cpue_without_zeros", "cpue_with_zeros_since_2009",
-            "cpue_without_zeros_since_2009")
-series_df <- lapply(series, function(x) {
-  dff <- paste0("processed_data/", x, ".csv") %>% read.csv()
-  dff$series <- x
-  return(dff)
-}) %>% do.call(rbind, .)
-ggplot(series_df, aes(yy, value, colour = type)) + facet_wrap(~series) + geom_line() + geom_point() +
-  gfplot::theme_pbs()
-ggsave("figures/data/compare_cpue_series.png", width = 5, height = 4)
+ggplot(annual_cpue %>% mutate(yy = as.numeric(yy)) %>% dplyr::filter(variable %in% c("m5nb", "obs")), 
+       aes(yy, rel_val, colour = variable)) + geom_line() + geom_point() + gfplot::theme_pbs()
