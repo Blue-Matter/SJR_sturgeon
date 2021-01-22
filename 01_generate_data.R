@@ -33,7 +33,7 @@ write.csv(catch, "processed_data/catch.csv")
 
 
 # SS assumes units of abundance in 10^3 fish and weight in metric tonnes
-generate_catch_by_sex <- function() {
+generate_catch_by_sex <- function(percent_female = 0.55) {
   curr_catch <- readxl::read_excel(file.path(data_path, "sturgeon summary table start updated Dec 16.xlsx")) 
   
   sex_ratio_all <- curr_catch %>% summarise(ratio_F = sum(F_harvest)/sum(F_harvest + M_harvest))
@@ -48,9 +48,9 @@ generate_catch_by_sex <- function() {
   c_male <- data.frame(Year = curr_catch$year, Season = 1, Fleet = 2, Catch = curr_catch$M_harvest/1e3, SE = 0.01)
 
   hist_catch <- readxl::read_excel(file.path(data_path, "Table_4_Bradford_2016.xlsx"))
-  h_female <- data.frame(Year = hist_catch$Year, Season = 1, Fleet = 3, Catch = 0.55 * hist_catch$SJR, SE = 0.01) %>% 
+  h_female <- data.frame(Year = hist_catch$Year, Season = 1, Fleet = 3, Catch = percent_female * hist_catch$SJR, SE = 0.01) %>% 
     dplyr::filter(Catch > 0)
-  h_male <- data.frame(Year = hist_catch$Year, Season = 1, Fleet = 4, Catch = 0.45 * hist_catch$SJR, SE = 0.01) %>% 
+  h_male <- data.frame(Year = hist_catch$Year, Season = 1, Fleet = 4, Catch = (1 - percent_female) * hist_catch$SJR, SE = 0.01) %>% 
     dplyr::filter(Catch > 0)
   
   minas_df <- data.frame(Year = hist_catch$Year, Season = 1, Fleet = 5, 
@@ -62,6 +62,9 @@ generate_catch_by_sex <- function() {
 
 catch_by_sex <- generate_catch_by_sex()
 write.csv(catch_by_sex, "processed_data/catch_by_sex.csv")
+
+catch_by_sex <- generate_catch_by_sex(0.6)
+write.csv(catch_by_sex, "processed_data/catch_by_sex_0.6F.csv")
 
 
 
@@ -75,6 +78,21 @@ generate_CAL_SJR <- function(bins = seq(40, 280, 5), month = 6) {
   CAL$`TL(cm)`[is.na(CAL$`TL(cm)`)] <- CAL$`TL(in)`[is.na(CAL$`TL(cm)`)] * 2.54
   CAL <- CAL[!is.na(CAL$`TL(cm)`), ]
   CAL <- dplyr::filter(CAL, `TL(cm)` <= max(bins) & `TL(cm)` >= min(bins))
+  
+  ### Proportion female by weight
+  #CAL %>% mutate(TL_cm = ifelse(is.na(`TL(cm)`), `TL(in)` * 2.54, `TL(cm)`),
+  #               W = 2e-5 * TL_cm^2.72) %>% group_by(YYYY, Sout) %>% summarise(CC = sum(W, na.rm = TRUE)) %>%
+  #  dplyr::filter(Sout == "F" | Sout == "M") %>% group_by(YYYY) %>% mutate(PF = CC/sum(CC)) %>% 
+  #  dplyr::filter(Sout == "F") %>%
+  #  ggplot(aes(YYYY, PF)) + geom_line() + geom_point() + gfplot::theme_pbs() + 
+  #  labs(x = "Year", y = "Percent female")
+  #ggsave("figures/data/CAL_percent_female_weight.png", width = 4, height = 3)
+  #
+  #CAL %>% dplyr::filter(Sout == "F" | Sout == "M") %>% group_by(YYYY, Sout) %>% summarise(n = n()) %>%
+  #  group_by(YYYY) %>% mutate(PF = n/sum(n)) %>% dplyr::filter(Sout == "F") %>%
+  #  ggplot(aes(YYYY, PF)) + geom_line() + geom_point() + gfplot::theme_pbs() + 
+  #  labs(x = "Year", y = "Percent female")
+  #ggsave("figures/data/CAL_percent_female_abundance.png", width = 4, height = 3)
   
   ### Harvested length comps
   CAL_harvest <- dplyr::filter(CAL, Harvested == 1) %>% 
