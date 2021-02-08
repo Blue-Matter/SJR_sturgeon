@@ -1,15 +1,6 @@
 
-#get_tag_data <- function() {
-#  dir <- "03A_SSF_0.6BOF_tags4"
-#  replist <- r4ss::SS_output(file.path(getwd(), "SS", dir), covar = FALSE, verbose = FALSE)
-#  
-#  list(N_tag = replist$tagrelease$Nrelease[-length(replist$tagrelease$Nrelease)], 
-#       N_recap = replist$tagdbase2 %>% dplyr::filter(Repl. != 12, Yr <= 2020) %>%
-#         reshape2::acast(list("Repl.", "Yr"), value.var = "Obs"))
-#}
-
-
-Brownie <- function(tag_data, fix_M = FALSE, M = 0.06, latency = 4, report_rate = 1) {
+Brownie <- function(tag_data, fix_M = FALSE, M = 0.06, latency = 4, report_rate = 1,
+                    fix_retain = TRUE, retain = 1) {
   get_TMB_model <- try(dyn.load("Brownie/brownie.dll"), silent = TRUE)
   if(is.character(get_TMB_model)) TMB::compile("Brownie/brownie.cpp")
   dyn.load("Brownie/brownie.dll")
@@ -20,12 +11,14 @@ Brownie <- function(tag_data, fix_M = FALSE, M = 0.06, latency = 4, report_rate 
                    latency = latency)
   
   TMB_params <- list(log_M = log(M), log_F = log(rep(0.05, TMB_data$n_y)),
-                     log_report_rate = log(report_rate), log_latent_report = rep(0.001, latency - 1) %>% log())
+                     log_retain = log(retain), log_report_rate = log(report_rate), 
+                     log_latent_report = rep(0.001, latency) %>% log())
 
   map <- list()
   if(fix_M) map$log_M <- factor(NA)
+  if(fix_retain) map$log_retain <- factor(NA)
   map$log_report_rate <- factor(NA)
-  map$log_latent_report <- c(NA, 1:(latency - 2)) %>% factor()
+  #map$log_latent_report <- c(NA, 1:(latency - 1)) %>% factor()
   
   obj <- TMB::MakeADFun(data = TMB_data, parameters = TMB_params, map = map, DLL = "brownie", silent = TRUE)
   opt <- nlminb(obj$par, obj$fn, obj$gr)
@@ -53,7 +46,7 @@ plot_F_Brownie <- function(Brownie, ylim = c(0, 0.1)) {
 
 plot_Brownie_fit <- function(Brownie) {
   
-  plot_tags <- function(Year_rel = 2009:2019, Year_recap = 2009:2020, obs, fit = NULL, N_rel, 
+  plot_tags <- function(Year_rel = 2009:2020, Year_recap = 2009:2020, obs, fit = NULL, N_rel, 
                         ylab = "Recaptures", fit_linewidth = 3, fit_color = "red") {
     obs[lower.tri(obs)] <- NA_real_
     if(!is.null(fit)) fit[lower.tri(fit)] <- NA_real_
@@ -74,7 +67,13 @@ plot_Brownie_fit <- function(Brownie) {
       abline(h = 0, col = "grey")
       abline(v = Year_rel[i], lty = 3)
       lines(Year_recap, obs[i, ], typ = "o")
-      if(!is.null(fit)) lines(Year_recap, fit[i, ], lwd = fit_linewidth, col = fit_color)
+      if(!is.null(fit)) {
+        if(sum(!is.na(fit[i, ])) == 1) {
+          points(Year_recap, fit[i, ], pch = 16, lwd = fit_linewidth, col = fit_color)
+        } else {
+          lines(Year_recap, fit[i, ], lwd = fit_linewidth, col = fit_color)
+        }
+      }
       legend(ifelse(i == 1, "topright", "topleft"), legend = c(Year_rel[i], paste0("N released = ", N_rel[i])), 
              bty = "n", xjust = 1)
       
@@ -90,19 +89,18 @@ plot_Brownie_fit <- function(Brownie) {
 
 plot_Brownie_resid <- function(Brownie, bubble_adj = 5) {
   
-  plot_resid <- function(Year_rel = 2009:2019, Year_recap = 2009:2020, obs, fit = NULL, N_rel, 
+  plot_resid <- function(Year_rel = 2009:2020, Year_recap = 2009:2020, obs, fit = NULL, N_rel, 
                          bubble_adj) {
     bubble_color = c("black", "white")
     
-    obs[lower.tri(obs, TRUE)] <- NA_real_
-    if(!is.null(fit)) fit[lower.tri(fit, TRUE)] <- NA_real_
+    obs[lower.tri(obs)] <- NA_real_
+    if(!is.null(fit)) fit[lower.tri(fit)] <- NA_real_
     
     old_par <- par(no.readonly = TRUE)
     on.exit(par(old_par))
     
     obs_prob <- obs/N_rel
     fit_prob <- fit/N_rel
-    
     resid <- N_rel * (obs_prob - fit_prob) / sqrt(N_rel * fit_prob * (1 - fit_prob))
     
     diameter_max <- bubble_adj / pmin(10, max(abs(resid), na.rm = TRUE))

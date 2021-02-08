@@ -43,7 +43,7 @@ tag_summary <- lapply(tag_list, function(x) {
 tag_summary[order(tag_summary$Ytag), ] %>% 
   write.csv(file.path("processed_data", "unique_tags.csv"))
 
-# Release-recap events - only consider those with time at liberty of at least 1 calendar year
+# Release-recap events
 tag_events_recap <- lapply(tag_list, function(xx) {
   ID_out <- xx$ID %>% unique()
   tag_out <- xx$tag_type %>% unique()
@@ -75,8 +75,7 @@ tag_events_recap <- lapply(tag_list, function(xx) {
   }
   
 }) %>% do.call(rbind, .) %>% 
-  dplyr::filter(!is.na(Days_at_liberty), Yrecap - Yrel > 0, !is.na(as.numeric(rel_TL)), 
-                as.numeric(rel_TL) >= 150,
+  dplyr::filter(as.numeric(rel_TL) >= 150,
                 !rel_status %in% c("H", "RM", "RMPY", "P", "p", "DEAD"))
 
 tag_events_recap[order(tag_events_recap$Yrel), ] %>% 
@@ -127,28 +126,36 @@ tag_rel_years <- group_by(tag_events_rel, Yrel) %>% summarise(n = n())
 barplot(n ~ Yrel, tag_rel_years)
 
 # Summarize tag events vs. year of recapture
-tag_events_yr <- group_by(tag_events_recap, Yrel, Yrecap, tag_type) %>% summarise(n_recap = n())
+tag_events_yr <- group_by(tag_events_recap, Yrel, Yrecap, tag_type) %>% summarise(n_recap = n()) %>%
+  dplyr::left_join(tag_rel_years, by = "Yrel") %>% mutate(Yrel2 = paste0(Yrel, " (", n, " releases", ")"))
 ggplot(tag_events_yr, aes(as.factor(Yrecap), n_recap)) + 
+  #geom_bar(stat = 'identity', data = tag_rel_years, aes(as.factor(Yrel), n)) + 
+  #geom_text(data = tag_rel_years, aes(label = n)) + 
   geom_bar(stat = 'identity', aes(fill = tag_type)) + 
-  geom_bar(stat = 'identity', data = tag_rel_years, aes(as.factor(Yrel), n)) + 
-  facet_wrap(~Yrel, scales = "free") + 
+  facet_wrap(~Yrel2, scales = "free") + 
   labs(x = "Year of recapture", y = "Number of recaptures") +
-  gfplot::theme_pbs() + theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
+  theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
+  scale_fill_discrete(name = "Tag type")
 ggsave("figures/data/tag_rel_vs_recapture.png", height = 6, width = 8)
 
-ggplot(tag_events_yr, aes(as.factor(Yrecap), n_recap)) + 
+ggplot(tag_events_yr %>% dplyr::filter(Yrecap - Yrel > 0), aes(as.factor(Yrecap), n_recap)) + 
   geom_bar(stat = 'identity', aes(fill = tag_type)) + 
-  facet_wrap(~Yrel, scales = "free") + 
+  facet_wrap(~Yrel2, scales = "free") + 
   labs(x = "Year of recapture", y = "Number of recaptures") +
-  gfplot::theme_pbs() + theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
-ggsave("figures/data/tag_recapture.png", height = 6, width = 8)
+  theme_bw() + theme(axis.text.x = element_text(angle = 45, vjust = 0.5)) +
+  scale_fill_discrete(name = "Tag type")
+ggsave("figures/data/tag_recapture_liberty_oneyear.png", height = 6, width = 8)
 
 # Years at liberty for all tag events
 tag_events_yr_all <- tag_events_yr %>% mutate(years_at_liberty = Yrecap - Yrel) %>% 
   group_by(years_at_liberty) %>% summarise(n_recap = sum(n_recap))
 ggplot(tag_events_yr_all, aes(years_at_liberty, n_recap)) + geom_bar(stat = "identity") + 
-  labs(x = "Years at liberty", y = "Number of recaptures") + gfplot::theme_pbs()
+  labs(x = "Years at liberty", y = "Number of recaptures") + theme_bw()
 ggsave("figures/data/tag_recapture_summary.png", height = 3, width = 4)
+
+ggplot(tag_events_yr_all %>% dplyr::filter(years_at_liberty > 0), aes(years_at_liberty, n_recap)) + geom_bar(stat = "identity") + 
+  labs(x = "Years at liberty", y = "Number of recaptures") + theme_bw()
+ggsave("figures/data/tag_recapture_summary_oneyearliberty.png", height = 3, width = 4)
 
 # Growth vs. time at liberty
 #plot(tag_events$Days_at_liberty/365, tag_events$rel_TL, ylim = c(150, 300), typ = 'n')
@@ -174,13 +181,14 @@ rgl::plot3d(tag_recap$rel_TL, tag_recap$Days_at_liberty, tag_recap$recap_TL)
 ggplot(tag_recap, aes(rel_TL, recap_TL, 
                       colour = Days_at_liberty %>% as.numeric %>% '/'(365) %>% round() %>% factor())) +
   geom_abline(slope = 1, intercept = 0, linetype = 2) + 
-  geom_point() + coord_cartesian(xlim = c(150, 250), ylim = c(150, 250)) + gfplot::theme_pbs() +
+  geom_point() + coord_cartesian(xlim = c(150, 250), ylim = c(150, 250)) + theme_bw() +
   labs(x = "Length at release (cm)", y = "Length at recapture (cm)") +
   scale_colour_viridis_d(name = "Time at\nliberty (years)")
 ggsave("figures/data/tag_size_recap.png", width = 5, height = 3)
 
 
-# For SS
+# For SS - models only included tags at liberty >= 1 year, but this doesn't matter as SS can't handle incomplete
+# mixing assumptions
 make_tag_rel_ss <- function() {
   ymin <- 2009
   
@@ -189,11 +197,19 @@ make_tag_rel_ss <- function() {
 }
 make_tag_rel_ss() %>% write.csv(file.path("processed_data", "tag_release.csv"))
 
-
-
 make_tag_recap_ss <- function() {
   ymin <- 2009
   out <- group_by(tag_events_recap, Yrel, Yrecap) %>% summarise(n_recap = n())
   data.frame(Yrel = out$Yrel - ymin + 1, Year = out$Yrecap, Season = 1, Fleet = 1, nrecap = out$n_recap)
 }
 make_tag_recap_ss() %>% write.csv(file.path("processed_data", "tag_recapture.csv"))
+
+# For Brownie model
+make_tag_Brownie <- function() {
+  N_tag <- tag_rel_years$n
+  N_recap <- group_by(tag_events_yr, Yrel, Yrecap) %>% summarise(n = sum(n_recap)) %>% 
+    reshape2::acast(list("Yrel", "Yrecap"), fill = 0, value.var = "n")
+  list(N_tag = N_tag, N_recap = N_recap)
+}
+make_tag_Brownie() %>% saveRDS("processed_data/tag_table.rds")
+

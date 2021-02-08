@@ -13,6 +13,7 @@ Type objective_function<Type>::operator() ()
   
   PARAMETER(log_M);
   PARAMETER_VECTOR(log_F);
+  PARAMETER(log_retain); // Proportion of tags retained from year to year
   PARAMETER(log_report_rate);
   PARAMETER_VECTOR(log_latent_report);
   
@@ -28,6 +29,7 @@ Type objective_function<Type>::operator() ()
     F(j) = exp(log_F(j));
     Z(j) = F(j) + M;
   }
+  Type retain = exp(log_retain);
   Type report_rate = exp(log_report_rate);
   vector<Type> latent_report(log_latent_report.size());
   for(int ii=0;ii<log_latent_report.size();ii++) latent_report(ii) = exp(log_latent_report(ii));
@@ -41,7 +43,7 @@ Type objective_function<Type>::operator() ()
         surv(i,j) = 1;
         surv_cum(i,j) = 1;
       } else if(i < j) {
-        surv(i,j) = exp(-F(j-1) - M);
+        surv(i,j) = exp(-F(j-1) - M) * retain;
         surv_cum(i,j) = 1;
         for(int jj=i;jj<j;jj++) surv_cum(i,j) *= surv(i,jj); //Double checked in R
       }
@@ -49,7 +51,7 @@ Type objective_function<Type>::operator() ()
       if(i<=j) {
         N_pred(i,j) = N_rel(i) * surv_cum(i,j);
         C_pred(i,j) = F(j)/Z(j) * (1 - exp(-Z(j))) * N_pred(i,j) * report_rate;
-        int ii = i + latency - 1;
+        int ii = i + latency;
         if(ii > j) {
           C_pred(i,j) *= latent_report(j-i); //Double checked in R
         } 
@@ -88,6 +90,7 @@ Type objective_function<Type>::operator() ()
   REPORT(P_pred);
   ADREPORT(M);
   ADREPORT(F);
+  ADREPORT(retain);
   ADREPORT(latent_report);
   REPORT(M);
   REPORT(F);
