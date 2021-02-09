@@ -28,8 +28,9 @@ Brownie <- function(tag_data, fix_M = FALSE, M = 0.06, latency = 4, report_rate 
 }
 
 plot_F_Brownie <- function(Brownie, ylim = c(0, 0.1)) {
+  Find <- rownames(Brownie$SD$cov.fixed) == "log_F"
   
-  SD_logF <- Brownie$SD$cov.fixed[2:13, 2:13] %>% diag() %>% sqrt()
+  SD_logF <- Brownie$SD$cov.fixed[Find, Find] %>% diag() %>% sqrt()
   #SD_logF[1] <- 0.001
   FF_lower <- log(Brownie$report$F) - 2 * SD_logF
   FF_upper <- log(Brownie$report$F) + 2 * SD_logF
@@ -44,12 +45,12 @@ plot_F_Brownie <- function(Brownie, ylim = c(0, 0.1)) {
   plot_timeseries(2009:2020, Brownie$report$F, obs_lower = exp(FF_lower), obs_upper = exp(FF_upper))
 }
 
-plot_Brownie_fit <- function(Brownie) {
+plot_Brownie_fit <- function(Brownie, diag = TRUE) {
   
   plot_tags <- function(Year_rel = 2009:2020, Year_recap = 2009:2020, obs, fit = NULL, N_rel, 
                         ylab = "Recaptures", fit_linewidth = 3, fit_color = "red") {
-    obs[lower.tri(obs)] <- NA_real_
-    if(!is.null(fit)) fit[lower.tri(fit)] <- NA_real_
+    obs[lower.tri(obs, !diag)] <- NA_real_
+    if(!is.null(fit)) fit[lower.tri(fit, !diag)] <- NA_real_
     
     old_par <- par(no.readonly = TRUE)
     on.exit(par(old_par))

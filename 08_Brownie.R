@@ -6,26 +6,27 @@ Br_estM <- Brownie(tag_data) # Estimate M
 Br_0.06M <- Brownie(tag_data, TRUE) # Fix M
 Br_estret_fixM <- Brownie(tag_data, TRUE, fix_retain = FALSE) # remains = 0.8
 Br_0.7ret <- Brownie(tag_data, TRUE, retain = 0.7) 
-summary(Br_estret_fixM$SD) %>% write.csv("tables/Brownie.csv")
+summary(Br_estret_fixM$SD) %>% cbind(`CV` = .[, "Std. Error"]/.[, "Estimate"]) %>% round(2) %>%
+  write.csv("tables/Brownie.csv")
 
 png("figures/brownie/F_estM.png", height = 3, width = 4, res = 400, units = "in")
 par(mar = c(5, 4, 1, 1))
-plot_F_Brownie(Br_estM, c(0, 0.4))
+plot_F_Brownie(Br_estM, c(0, 0.2))
 dev.off()
 
 png("figures/brownie/F_fixM.png", height = 3, width = 4, res = 400, units = "in")
 par(mar = c(5, 4, 1, 1))
-plot_F_Brownie(Br_0.06M, c(0, 0.1))
+plot_F_Brownie(Br_0.06M, c(0, 0.05))
 dev.off()
 
 png("figures/brownie/F_estret_fixM.png", height = 3, width = 4, res = 400, units = "in")
 par(mar = c(5, 4, 1, 1))
-plot_F_Brownie(Br_estret_fixM, c(0, 0.4))
+plot_F_Brownie(Br_estret_fixM, c(0, 0.2))
 dev.off()
 
 png("figures/brownie/F_0.7ret.png", height = 3, width = 4, res = 400, units = "in")
 par(mar = c(5, 4, 1, 1))
-plot_F_Brownie(Br_0.7ret, c(0, 0.6))
+plot_F_Brownie(Br_0.7ret, c(0, 0.3))
 dev.off()
 
 # Profile tag loss
@@ -80,6 +81,10 @@ dev.off()
 
 png("figures/brownie/fit_estret_fixM.png", height = 4, width = 5, res = 400, units = "in")
 plot_Brownie_fit(Br_estret_fixM)
+dev.off()
+
+png("figures/brownie/fit_estret_fixM_nodiag.png", height = 4, width = 5, res = 400, units = "in")
+plot_Brownie_fit(Br_estret_fixM, FALSE)
 dev.off()
 
 png("figures/brownie/fit_0.7ret.png", height = 4, width = 5, res = 400, units = "in")

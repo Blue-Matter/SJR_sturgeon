@@ -43,22 +43,32 @@ Type objective_function<Type>::operator() ()
         surv(i,j) = 1;
         surv_cum(i,j) = 1;
       } else if(i < j) {
-        surv(i,j) = exp(-F(j-1) - M) * retain;
+        int ii = i + latency;
+        if(ii > j) {
+          surv(i,j) = exp(-latent_report(j-i) * F(j-1) - M) * retain;
+        } else {
+          surv(i,j) = exp(-F(j-1) - M) * retain;
+        }
         surv_cum(i,j) = 1;
+      }
+      
+      if(i < j) {
         for(int jj=i;jj<j;jj++) surv_cum(i,j) *= surv(i,jj); //Double checked in R
       }
       
+      
       if(i<=j) {
         N_pred(i,j) = N_rel(i) * surv_cum(i,j);
-        C_pred(i,j) = F(j)/Z(j) * (1 - exp(-Z(j))) * N_pred(i,j) * report_rate;
         int ii = i + latency;
         if(ii > j) {
-          C_pred(i,j) *= latent_report(j-i); //Double checked in R
-        } 
+          Type ZZ = latent_report(j-i) * F(j) + M;
+          C_pred(i,j) = latent_report(j-i) * F(j)/ZZ * (1 - exp(-ZZ)) * N_pred(i,j) * report_rate;
+        } else {
+          C_pred(i,j) = F(j)/Z(j) * (1 - exp(-Z(j))) * N_pred(i,j) * report_rate;
+        }
       }
     }
   }
-
   
   vector<Type> C_pred_i(n_group);
   C_pred_i.setZero();

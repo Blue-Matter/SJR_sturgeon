@@ -95,7 +95,7 @@ tag_events_rel <- lapply(tag_list, function(xx) {
     rel_df <- x[-nrow(x), ]
     recap_df <- x[2:nrow(x), ]
     
-    keep <- c(recap_df$YYYY - rel_df$YYYY > 0, !final_tag_event_dead)
+    keep <- rep(TRUE, nrow(x) - 1) %>% c(!final_tag_event_dead)
   } else {
     keep <- !final_tag_event_dead
   }
@@ -211,5 +211,6 @@ make_tag_Brownie <- function() {
     reshape2::acast(list("Yrel", "Yrecap"), fill = 0, value.var = "n")
   list(N_tag = N_tag, N_recap = N_recap)
 }
-make_tag_Brownie() %>% saveRDS("processed_data/tag_table.rds")
-
+tag_tables <- make_tag_Brownie() 
+tag_tables %>% saveRDS("processed_data/tag_table.rds")
+cbind(tag_tables[[1]], tag_tables[[2]]) %>% write.csv("processed_data/tag_table.csv")
