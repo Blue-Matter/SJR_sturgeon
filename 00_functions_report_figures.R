@@ -1,4 +1,58 @@
-plot_sel_mat <- function(dir, type = c("length", "age"), fleet = c(1, 2, 5), sex = c(1, 2, 1)) { # Fleet # of SJR F, SJR M, BOF
+plot_mat <- function(type = c("length", "age")) {
+  
+  #replist_F <- r4ss::SS_output(file.path(getwd(), "SS", "01A_CSF_0.6BOF"))
+  #replist_M <- r4ss::SS_output(file.path(getwd(), "SS", "01A_CSF_0.6BOF_male"))
+  
+  type <- match.arg(type)
+  
+  if(type == "length") {
+    #mat_len <- data.frame(Length = replist_F$biology$Mean_Size, 
+    #                      Mat_F = replist_F$biology$Mat_len,
+    #                      Mat_M = replist_M$biology$Mat_len)
+    #write.csv(mat_len, file = "processed_data/mat_len.csv")
+    
+    mat_len <- read.csv("processed_data/mat_len.csv")
+    matplot(mat_len[, 2], mat_len[, 3:4], xlab = "Length (cm)", ylab = "Maturity", 
+            col = "black", typ = "o", pch = 16, lwd = 2, lty = c(1, 3))
+    legend("topleft", c("Female", "Male"), lwd = 2, lty = c(1, 3), pch = 16)
+  } else {
+    #mat_age <- data.frame(Age = dplyr::filter(replist_F$endgrowth, Sex == 1)$int_Age, 
+    #                      Mat_F = dplyr::filter(replist_F$endgrowth, Sex == 1)$Len_Mat, 
+    #                      Mat_M = dplyr::filter(replist_M$endgrowth, Sex == 2)$Len_Mat)
+    #write.csv(mat_age, file = "processed_data/mat_age.csv")
+    
+    mat_age <- read.csv("processed_data/mat_age.csv")
+    matplot(mat_age[, 2], mat_age[, 3:4], xlab = "Age", ylab = "Maturity", 
+            typ = "o", col = "black", pch = 16, lty = c(1, 3), lwd = 2)    
+    legend("topleft", c("Female", "Male"), lwd = 2, lty = c(1, 3), pch = 16)
+  }
+  
+  invisible()
+}
+
+#plot_mat <- function(dir, type = c("length", "age")) { # Fleet # of SJR F, SJR M, BOF
+#  
+#  if(is.character(dir)) {
+#    replist <- r4ss::SS_output(file.path(getwd(), "SS", dir))
+#  } else if(is.list(dir)) {
+#    replist <- dir
+#  } else {
+#    stop()
+#  }
+#  
+#  type <- match.arg(type)
+#  
+#  if(type == "length") {
+#    plot(Mat_len ~ Mean_Size, replist$biology, 
+#         xlab = "Length (cm)", ylab = "Maturity", typ = "o", pch = 16, lwd = 2)
+#  } else {
+#    plot(Len_Mat * Age_Mat ~ int_Age, replist$endgrowth %>% dplyr::filter(Sex == 1), 
+#         xlab = "Age", ylab = "Maturity", typ = "o", pch = 16, lwd = 2)
+#  }
+#  invisible()
+#}
+
+plot_sel_mat <- function(dir, type = c("length", "age"), fleet = c(1, 1, 3), sex = c(1, 2, 1)) { # Fleet # of SJR F, SJR M, BOF
   
   if(is.character(dir)) {
     replist <- r4ss::SS_output(file.path(getwd(), "SS", dir))
@@ -60,7 +114,7 @@ plot_mat <- function(dir, type = c("length", "age")) { # Fleet # of SJR F, SJR M
   invisible()
 }
 
-plot_catch <- function(replist, type = c("wt", "abun")) {
+plot_catch <- function(replist = r4ss::SS_output(file.path(getwd(), "SS", "03A_SSF_0.6BOF")), type = c("wt", "abun")) {
   type <- match.arg(type)
   cat <- dplyr::filter(replist$timeseries, Era == "TIME")
   
@@ -105,6 +159,30 @@ plot_CAL <- function(replist, fleet = 1, fleetname = "SJR F", plotfit = TRUE) {
   }
 }
 
+report_table <- function(replist) {
+  ts_B <- replist$timeseries %>% dplyr::filter(Era == "INIT" | Era == "TIME")
+  ts_F <- replist$derived_quants[replist$derived_quants$Label %in% paste0("F_", replist$startyr:replist$endyr), ]
+
+  get_SSN <- function() {
+    age_mat <- read.csv("processed_data/mat_age.csv")
+    NF <- replist$natage %>% dplyr::filter((`Beg/Mid` == "M" & Era == "TIME") | (`Beg/Mid` == "B" & Era == "INIT"), Sex == 1)
+    NM <- replist$natage %>% dplyr::filter((`Beg/Mid` == "M" & Era == "TIME") | (`Beg/Mid` == "B" & Era == "INIT"), Sex == 2)
+    list(SSN_F = colSums(t(NF[, -c(1:12)] %>% as.matrix()) * age_mat$Mat_F), 
+         SSN_M = colSums(t(NM[, -c(1:12)] %>% as.matrix()) * age_mat$Mat_M))
+  }
+  SSN <- get_SSN()
+  Fout <- numeric(length(replist$startyr:replist$endyr))
+  Fout[paste0("F_", replist$startyr:replist$endyr) %in% ts_F$Label] <- ts_F$Value
+  data.frame(Year = ts_B$Yr, SSB = ts_B$SpawnBio, FM = c(0, Fout), 
+             SSN_F = SSN[[1]] * 1e3, SSN_M = SSN[[2]] * 1e3) %>% 
+    dplyr::mutate(SSN = round(SSN_F + SSN_M, 0), SSN_F = round(SSN_F), SSN_M = round(SSN_M))
+}
+
+compare_SSN <- function(report, model_names) {
+  Map(function(x, y) report_table(x) %>% dplyr::mutate(Model = y), x = report, y = model_names) %>%
+    dplyr::bind_rows()
+}
+
 
 compare_SSB <- function(dir, model_names, type = c("SSB", "SSBMSY", "SSB0"), forecast = TRUE,
                         retro_yr = NA) {
@@ -132,10 +210,11 @@ compare_SSB <- function(dir, model_names, type = c("SSB", "SSBMSY", "SSB0"), for
     g <- ggplot(SSB, aes(Year, SSB, colour = Model)) 
   }
   if(type == "SSBMSY") {
-    g <- ggplot(SSB, aes(Year, SSB/SSBMSY, colour = Model)) + geom_hline(yintercept = 1, linetype = 3)
+    g <- ggplot(SSB, aes(Year, SSB/SSBMSY, colour = Model)) + geom_hline(yintercept = 1, linetype = 3) +
+      labs(y = expression(SSB/SSB[MSY]))
   }
   if(type == "SSB0") {
-    g <- ggplot(SSB, aes(Year, SSB/SSB0, colour = Model)) 
+    g <- ggplot(SSB, aes(Year, SSB/SSB0, colour = Model)) + labs(y = expression(SSB/SSB[0]))
   }
   if(forecast) g <- g + geom_vline(xintercept = 2020, linetype = 3)
   g + geom_line(size = 1) + theme_bw() + geom_hline(yintercept = 0, colour = "grey")
@@ -163,11 +242,14 @@ compare_F <- function(dir, model_names, type = c("F", "FMSY", "F0.1", "FSPR"), t
       data.frame(Year = ts$Yr, FM = FM, Model = model_name)
     } else {
       ts <- replist$derived_quants[replist$derived_quants$Label %in% paste0("F_", replist$startyr:replist$endyr), ]
-      
+      if(forecast) {
+        tsf <- dplyr::filter(replist$timeseries, Era == "FORE")
+      }
       Fout <- numeric(length(replist$startyr:replist$endyr))
       Fout[paste0("F_", replist$startyr:replist$endyr) %in% ts$Label] <- ts$Value
       data.frame(Year = replist$startyr:replist$endyr, FM = Fout) %>% 
-                   dplyr::mutate(Model = model_name)
+        rbind(data.frame(Year = tsf$Yr, FM = tsf$`F:_1`)) %>%
+        dplyr::mutate(Model = model_name)
     }
   }, replist = report, model_name = model_names, fleet = fleet) %>% do.call(rbind, .)
   
@@ -196,22 +278,52 @@ compare_F <- function(dir, model_names, type = c("F", "FMSY", "F0.1", "FSPR"), t
     coord_cartesian(ylim = ylim) + labs(y = labs)
 }
 
-compare_CAL <- function(report, model_names, fleet = 1, fleetname = "SJR F") {
-  
-  CALpred <- Map(function(x, model_name) {
-    res <- dplyr::filter(report[[x]]$lendbase, Fleet == fleet) %>% dplyr::select(Yr, Bin, Exp) %>% 
-      reshape2::melt(id.vars = c("Yr", "Bin")) %>%
-      dplyr::mutate(Model = model_name)
-  }, x = 1:length(report), model_name = model_names) %>% dplyr::bind_rows()
-  
-  CALobs <- dplyr::filter(report[[1]]$lendbase, Fleet == fleet) %>% dplyr::select(Yr, Bin, Obs) %>% 
+compare_CAL <- function(report, model_names, fleet = 1, gender = 1, fleetname = "SJR F", obs_only = FALSE) {
+  CALobs <- dplyr::filter(report[[1]]$lendbase, Fleet == fleet, sex == gender) %>% dplyr::select(Yr, Bin, Obs) %>% 
     reshape2::melt(id.vars = c("Yr", "Bin"))
   
-  ggplot(CALpred, aes(Bin, value)) + facet_wrap(~Yr) +
-    geom_line(data = CALobs) + geom_point(data = CALobs) +
-    geom_line(aes(colour = Model)) + geom_point(aes(colour = Model)) + theme_bw() +
-    labs(x = "Length (cm)", y = "Proportion") + ggtitle(fleetname)
+  if(!obs_only) {
+    CALpred <- Map(function(x, model_name) {
+      res <- dplyr::filter(report[[x]]$lendbase, Fleet == fleet, sex == gender) %>% dplyr::select(Yr, Bin, Exp) %>% 
+        reshape2::melt(id.vars = c("Yr", "Bin")) %>%
+        dplyr::mutate(Model = model_name)
+    }, x = 1:length(report), model_name = model_names) %>% dplyr::bind_rows()
+    
+    ggplot(CALpred, aes(Bin, value)) + facet_wrap(~Yr, scales = "free_y") +
+      geom_line(data = CALobs) + geom_point(data = CALobs) +
+      geom_line(aes(colour = Model)) + geom_point(aes(colour = Model)) + theme_bw() +
+      labs(x = "Length (cm)", y = "Proportion") + ggtitle(fleetname)
+  } else {
+    ggplot(CALobs, aes(Bin, value)) + facet_wrap(~Yr, scales = "free_y") +
+      geom_line() + geom_point() +
+      theme_bw() +
+      labs(x = "Length (cm)", y = "Proportion") + ggtitle(fleetname)
+  }
 }
+
+compare_CAA <- function(report, model_names, fleet = 3, gender = 0, fleetname = "BOF", obs_only = FALSE) {
+  CAAobs <- dplyr::filter(report[[1]]$agedbase, Fleet == fleet, sex == gender) %>% dplyr::select(Yr, Bin, Obs) %>% 
+    reshape2::melt(id.vars = c("Yr", "Bin"))
+  
+  if(!obs_only) {
+    CAApred <- Map(function(x, model_name) {
+      res <- dplyr::filter(report[[x]]$agedbase, Fleet == fleet, sex == gender) %>% dplyr::select(Yr, Bin, Exp) %>% 
+        reshape2::melt(id.vars = c("Yr", "Bin")) %>%
+        dplyr::mutate(Model = model_name)
+    }, x = 1:length(report), model_name = model_names) %>% dplyr::bind_rows()
+    
+    ggplot(CAApred, aes(Bin, value)) + facet_wrap(~Yr, scales = "free_y") +
+      geom_line(data = CAAobs) + geom_point(data = CAAobs) +
+      geom_line(aes(colour = Model)) + geom_point(aes(colour = Model)) + theme_bw() +
+      labs(x = "Length (cm)", y = "Proportion") + ggtitle(fleetname)
+  } else {
+    ggplot(CAAobs, aes(Bin, value)) + facet_wrap(~Yr, scales = "free_y") +
+      geom_line() + geom_point() +
+      theme_bw() +
+      labs(x = "Length (cm)", y = "Proportion") + ggtitle(fleetname)
+  }
+}
+
 
 compare_recruitment <- function(replist, model_names) {
   Rec <- Map(function(replist, model_name) {
@@ -232,7 +344,7 @@ plot_SSB <- function(replist, forecast = TRUE) {
   Yr <- ts$Yr
   SSBMSY <- replist$derived_quants$Value[replist$derived_quants$Label == "SSB_MSY"]
   SSB_SPR <- replist$derived_quants$Value[replist$derived_quants$Label == "SSB_SPR"]
-  plot(Yr, SSB, typ = "o", ylim = c(0, 1.1 * max(SSB)), xlab = "Year")
+  plot(Yr, SSB, typ = "o", ylim = c(0, 1.1 * max(SSB)), xlab = "Year", ylab = "SSB (t)")
   abline(h = c(SSBMSY, SSB_SPR), lty = 2:3)
   legend("topright", c(expression(SSB[MSY]), expression(SSB[50*"%"])), lty = 2:3)
   if(forecast) abline(v = 2020, lty = 3)
@@ -287,17 +399,23 @@ plot_F_CSF <- function(replist, forecast = TRUE) {
   if(forecast) abline(v = 2020, lty = 3)
 }
 
-plot_summary_F <- function(replist, ylim = c(0, 3), F01 = 0.1, SPR = 0.5, F_SPR = 0.06) {
+plot_summary_F <- function(replist, ylim = c(0, 3), F01 = 0.13, SPR = 0.5, F_SPR = 0.06, forecast = TRUE) {
   ts <- replist$derived_quants[replist$derived_quants$Label %in% paste0("F_", replist$startyr:replist$endyr), ]
   
   Fout <- numeric(length(replist$startyr:replist$endyr))
   Fout[paste0("F_", replist$startyr:replist$endyr) %in% ts$Label] <- ts$Value
   out <- data.frame(Year = replist$startyr:replist$endyr, FM = Fout)
   
+  if(forecast) {
+    out <- rbind(out, 
+                 replist$timeseries %>% dplyr::filter(Era == "FORE") %>% dplyr::select(Year = Yr, FM = `F:_1`))
+  }
+  
   plot(FM ~ Year, out, typ = "n", xlab = "Year", ylab = "Summary F", ylim = ylim)
   abline(h = 0, col = "grey")
   lines(FM ~ Year, out, lwd = 2)
   abline(h = c(F01, F_SPR), lty = 3:4)
+  if(forecast) abline(v = 2020, lty = 3)
   legend("topright", c(expression(F[0.1]), 
                        parse(text = paste0("expression(F[", 100 * SPR, "*\"%\"])")) %>% eval()),
          lty = 3:4)

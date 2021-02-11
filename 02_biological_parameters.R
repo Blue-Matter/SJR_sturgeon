@@ -76,8 +76,9 @@ Hewitt_M(43) # 0.10
 # Get the slope parameter given the length of 50% maturity (x50), another length (x) 
 # and its corresponding maturity (m)
 mat_slope <- function(x, m, x50) log((1-m)/m)/(x - x50)
-mat_slope(160, 0.05, 175)
 
+mat_slope(160, 0.05, 175) # Female maturity
+mat_slope(140, 0.05, 160) # Male maturity
 
 
 
