@@ -1,102 +1,224 @@
-library(dplyr)
-dir <- "01_base"
-dir <- "02_agesel"
+source("00_functions_report_figures.R")
 
+dir <- "03A_SSF_0.6BOF"
 replist <- r4ss::SS_output(file.path(getwd(), "SS", dir))
 
-plot_sel_mat <- function(type = c("length", "age")) {
-  type <- match.arg(type)
-  
-  if(type == "length") {
-    plot(Mat_len ~ Mean_Size, replist$biology, 
-         xlab = "Length (cm)", ylab = "Selectivity/Maturity", typ = "o", pch = 16, lwd = 2)
-    lensel <- replist$sizeselex %>% filter(Factor == "Lsel" & Fleet == 1 & Yr == 2020)
-    lensel <- lensel[, -c(1:5)] %>% as.matrix()
-    matlines(colnames(lensel) %>% as.numeric(), t(lensel), lty = c(2, 4), col = 1, lwd = 2)
-    legend("topleft", c("Female Maturity", "Female Selectivity", "Male Selectivity"),
-           lwd = 2, lty = c(1, 2, 4), pch = c(16, NA, NA))
-  } else {
-    plot(Len_Mat * Age_Mat ~ int_Age, replist$endgrowth %>% filter(Sex == 1), 
-         xlab = "Age", ylab = "Selectivity/Maturity", typ = "o", pch = 16, lwd = 2)
-    agesel <- replist$ageselex %>% filter(Factor == "Asel2" & Fleet == 1 & Yr == 2020)
-    agesel <- agesel[, -c(1:7)] %>% as.matrix()
-    matlines(colnames(agesel) %>% as.numeric(), t(agesel), lty = c(2, 4), col = 1, lwd = 2)
-    legend("topleft", c("Female Maturity", "Female Selectivity", "Male Selectivity"),
-           lwd = 2, lty = c(1, 2, 4), pch = c(16, NA, NA))
-  }
-  invisible()
-}
+# Ref
+# FMSY = 0.0830294
+# F01 = 0.10
+# F20 = 0.273063 
+# F30 = 0.147444
+# F40 = 0.0913185
+# F50 = 0.0600689 
+# F60 = 0.0401829
 
-plot_SSB <- function(forecast = TRUE) {
-  ts <- replist$timeseries %>% filter(Era != "VIRG")
-  if(!forecast) ts <- filter(ts, Era != "FORE")
-  SSB <- ts$SpawnBio
-  Yr <- ts$Yr
-  SSBMSY <- replist$derived_quants$Value[replist$derived_quants$Label == "SSB_MSY"]
-  SSB_SPR <- replist$derived_quants$Value[replist$derived_quants$Label == "SSB_SPR"]
-  plot(Yr, SSB, typ = "o", ylim = c(0, 1.1 * max(SSB)), xlab = "Year")
-  abline(h = c(SSBMSY, SSB_SPR), lty = 2:3)
-  legend("topright", c(expression(SSB[MSY]), expression(SSB[50*"%"])), lty = 2:3)
-  if(forecast) abline(v = 2020, lty = 3)
-}
+##### Biology
+png("figures/biology/maturity_length.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+plot_mat(replist)
+dev.off()
 
-plot_SSB_SSBMSY <- function(forecast = TRUE) {
-  ts <- replist$timeseries %>% filter(Era != "VIRG")
-  if(!forecast) ts <- filter(ts, Era != "FORE")
-  SSB <- ts$SpawnBio
-  Yr <- ts$Yr
-  SSBMSY <- replist$derived_quants$Value[replist$derived_quants$Label == "SSB_MSY"]
-  plot(Yr, SSB/SSBMSY, typ = "o", ylim = c(0, 1.1 * max(SSB/SSBMSY)), 
-       xlab = "Year", ylab = expression(SSB/SSB[MSY]))
-  abline(h = 1, lty = 2)
-  if(forecast) abline(v = 2020, lty = 3)
-}
+png("figures/biology/maturity_age.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+plot_mat(replist, "age")
+dev.off()
 
-plot_SSB_SSB0 <- function(forecast = TRUE) {
-  ts <- replist$timeseries %>% filter(Era != "VIRG")
-  if(!forecast) ts <- filter(ts, Era != "FORE")
-  SSB <- ts$SpawnBio
-  Yr <- ts$Yr
-  SSB0 <- replist$derived_quants$Value[replist$derived_quants$Label == "SSB_unfished"]
-  plot(Yr, SSB/SSB0, typ = "o", ylim = c(0, 1.1 * max(SSB/SSB0)), 
-       xlab = "Year", ylab = expression(SSB/SSB[0]))
-  #abline(h = 1, lty = 2)
-  if(forecast) abline(v = 2020, lty = 3)
-}
+png("figures/biology/growth.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+r4ss::SSplotBiology(replist, subplots = 1, 
+                    labels = c("Length (cm)", "Age (yr)", "Maturity", "Mean weight (kg) in last year",
+                               "Spawning output", "Length (cm)", "Natural mortality",
+                               "Female weight (kg)", "Female length (cm)", "Fecundity", "Default fecundity label",
+                               "Year", "Hermaphroditism transition rate", "Fraction females by age at equilibrium"))
+dev.off()
 
+##### Index
+png("figures/data/index.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+r4ss::SSplotIndices(replist, subplots = 1)
+dev.off()
 
-plot_F_FMSY <- function(forecast = TRUE) {
-  ts <- replist$timeseries
-  if(!forecast) ts <- filter(ts, Era != "FORE")
-  FF <- ts[, grepl("F:_", colnames(ts))] %>% rowSums()
-  Yr <- ts$Yr
-  FMSY <- replist$derived_quants$Value[replist$derived_quants$Label == "annF_MSY"]
-  plot(Yr, FF/FMSY, typ = "o", ylim = c(0, 3), xlab = "Year", ylab = expression(F/F[MSY]))
-  abline(h = 1, lty = 2)
-  if(forecast) abline(v = 2020, lty = 3)
-}
+##### Catch
+png("figures/data/catch_hist.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+plot_catch(replist, "wt")
+dev.off()
 
-plot_F <- function(forecast = TRUE) {
-  ts <- replist$timeseries
-  if(!forecast) ts <- filter(ts, Era != "FORE")
-  FF <- ts[, grepl("F:_", colnames(ts))] %>% rowSums()
-  Yr <- ts$Yr
-  FMSY <- replist$derived_quants$Value[replist$derived_quants$Label == "annF_MSY"]
-  FSPR <- replist$derived_quants$Value[replist$derived_quants$Label == "annF_SPR"]
-  plot(Yr, FF, typ = "o", ylim = c(0, 0.5), xlab = "Year", ylab = "F")
-  abline(h = c(FMSY, FSPR), lty = 2:3)
-  legend("topright", c(expression(F[MSY]), expression(F[50*"%"])), lty = 2:3)
-  if(forecast) abline(v = 2020, lty = 3)
-}
+png("figures/data/catch_modern.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+plot_catch(replist, "abun")
+dev.off()
+
+# Length data
+png("figures/data/CAL_SJR_F.png", height = 4, width = 6, res = 400, units = "in")
+r4ss::SSplotComps(replist, datonly = TRUE, showeffN = FALSE, subplots = 1, fleets = 1)
+dev.off()
+
+png("figures/data/CAL_SJR_M.png", height = 4, width = 6, res = 400, units = "in")
+r4ss::SSplotComps(replist, datonly = TRUE, showeffN = FALSE, subplots = 1, fleets = 2)
+dev.off()
+
+png("figures/data/CAL_BOF.png", height = 4, width = 6, res = 400, units = "in")
+r4ss::SSplotComps(replist, datonly = TRUE, showeffN = FALSE, subplots = 1, fleets = 5)
+dev.off()
+
+# Age
+png("figures/data/CAA_BOF.png", height = 4, width = 6, res = 400, units = "in")
+r4ss::SSplotComps(replist, datonly = TRUE, kind = "AGE", showeffN = FALSE, subplots = 1, fleets = 5)
+dev.off()
 
 
+##### Selectivity vs. maturity
+png("figures/assess/sel_mat_length.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+plot_sel_mat(replist)
+dev.off()
 
-plot_sel_mat()
-plot_sel_mat("age")
+png("figures/assess/sel_mat_age.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+plot_sel_mat(replist, "age")
+dev.off()
 
-plot_SSB()
-plot_SSB_SSBMSY()
-plot_SSB_SSB0()
+##### Plot individual model fits
+# Fits in SSF 0.6BOF
+png("figures/assess/long_model_index_fit.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+r4ss::SSplotIndices(replist, subplots = 2)
+dev.off()
 
-plot_F()
-plot_F_FMSY()
+png("figures/data/long_model_CAL_SJR_F.png", height = 4, width = 6, res = 400, units = "in")
+r4ss::SSplotComps(replist, showeffN = FALSE, subplots = 1, fleets = 1)
+dev.off()
+
+png("figures/data/long_model_CAL_SJR_M.png", height = 4, width = 6, res = 400, units = "in")
+r4ss::SSplotComps(replist, showeffN = FALSE, subplots = 1, fleets = 2)
+dev.off()
+
+png("figures/data/long_model_CAL_BOF.png", height = 4, width = 6, res = 400, units = "in")
+r4ss::SSplotComps(replist, showeffN = FALSE, subplots = 1, fleets = 5)
+dev.off()
+
+# Age
+png("figures/data/long_model_CAA_BOF.png", height = 4, width = 6, res = 400, units = "in")
+r4ss::SSplotComps(replist, kind = "AGE", showeffN = FALSE, subplots = 1, fleets = 5)
+dev.off()
+
+# Summary F
+png("figures/assess/long_model_summary_F.png", height = 4, width = 6, res = 400, units = "in")
+plot_summary_F(replist, ylim = c(0, 0.12))
+dev.off()
+
+
+compare_CAL(list(replist), "Fit")
+ggsave("figures/assess/long_model_CAL_SJR_F2.png", height = 6, width = 7)
+
+
+compare_CAL(list(replist), "Fit", fleet = 2, fleetname = "SJR M")
+ggsave("figures/assess/long_model_CAL_SJR_M2.png", height = 6, width = 7)
+
+
+compare_CAL(list(replist), "Fit", fleet = 5, fleetname = "BOF")
+ggsave("figures/assess/long_model_CAL_BOF.png", height = 3, width = 4)
+
+plot_F_SSF(replist, ylim = c(0, 0.2))
+ggsave("figures/assess/long_model_fleet_F.png", height = 4, width = 7)
+
+##### Compare with a suite of models
+
+# Compare 0 - 90 % SJR origin of BOF catch
+report <- lapply(c("03A_SSF_zeroBOF", "03A_SSF_0.3BOF", "03A_SSF_0.6BOF", "03A_SSF_0.9BOF"), 
+                 function(x) r4ss::SS_output(file.path(getwd(), "SS", x)))
+
+compare_SSB(report, model_names = c("0%", "30%", "60%", "90%") %>% paste("BOF"))
+ggsave("figures/assess/compare_SSB_BOF.png", height = 4, width = 7)
+
+compare_SSB(report, model_names = c("0%", "30%", "60%", "90%") %>% paste("BOF"), type = "SSBMSY")
+ggsave("figures/assess/compare_SSBMSY_BOF.png", height = 4, width = 7)
+
+compare_SSB(report, model_names = c("0%", "30%", "60%", "90%") %>% paste("BOF"), type = "SSB0")
+ggsave("figures/assess/compare_SSB0_BOF.png", height = 4, width = 7)
+
+ref_pt_SSF <- data.frame(`Ref.pt.` = c("F0.1", "F50%"), value = c(0.1, 0.06))
+
+compare_F(report, model_names = c("0%", "30%", "60%", "90%") %>% paste("BOF"), type2 = "summary", 
+          ylim = c(0, 0.12), forecast = FALSE) + 
+  geom_hline(data = ref_pt_SSF, aes(yintercept = value, linetype = `Ref.pt.`))
+ggsave("figures/assess/compare_F_BOF.png", height = 4, width = 7)
+
+
+
+
+# Compare CSF (combined sex fishery) vs SSF (separate sex fishery)
+report <- lapply(c("03A_SSF_0.6BOF", "01A_CSF_0.6BOF"), 
+                 function(x) r4ss::SS_output(file.path(getwd(), "SS", x)))
+
+compare_SSB(report, model_names = c("SSF (30% BOF)", "CSF (30% BOF)"))
+ggsave("figures/assess/compare_SSB_fleet_structure.png", height = 4, width = 7)
+
+compare_SSB(report, model_names = c("SSF (30% BOF)", "CSF (30% BOF)"), type = "SSBMSY")
+ggsave("figures/assess/compare_SSBMSY_fleet_structure.png", height = 4, width = 7)
+
+compare_SSB(report, model_names = c("SSF (30% BOF)", "CSF (30% BOF)"), type = "SSB0")
+ggsave("figures/assess/compare_SSB0_fleet_structure.png", height = 4, width = 7)
+
+
+sex_ratio <- SSC_from_CSF("01A_CSF_0.6BOF") 
+png("figures/assess/sex_ratio_CSF.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+plot(ratio_F ~ Yr, sex_ratio$Hist, typ = "o", pch = 16, xlab = "Year", ylab = "Percent Female (by weight)")
+dev.off()
+
+
+ref_pt_SSF <- data.frame(`Ref.pt.` = c("F0.1", "F50%"), value = c(0.1, 0.06))
+
+compare_F(report, model_names = c("SSF (30% BOF)", "CSF (30% BOF)"), type2 = "summary", 
+          ylim = c(0, 0.25), forecast = FALSE) +
+  geom_hline(data = ref_pt_SSF, aes(yintercept = value, linetype = `Ref.pt.`))
+ggsave("figures/assess/compare_F_fleet_structure.png", height = 4, width = 7)
+
+
+# Long model with tags
+
+report <- lapply(c("03A_SSF_0.6BOF", "03A_SSF_0.6BOF_tags2", "03A_SSF_0.6BOF_tags4", "03A_SSF_0.6BOF_tags4_upweight"), 
+                 function(x) r4ss::SS_output(file.path(getwd(), "SS", x)))
+
+compare_SSB(report, model_names = c("No tags", "Tags (delay 2)", "Tags (delay 4)", "Tags (delay 4, upweighted)"))
+ggsave("figures/assess/compare_SSB_tags.png", height = 4, width = 7)
+
+compare_SSB(report, model_names = c("0%", "30%", "60%", "90%") %>% paste("BOF"), type = "SSBMSY")
+ggsave("figures/assess/compare_SSBMSY_BOF.png", height = 4, width = 7)
+
+compare_SSB(report, model_names = c("0%", "30%", "60%", "90%") %>% paste("BOF"), type = "SSB0")
+ggsave("figures/assess/compare_SSB0_BOF.png", height = 4, width = 7)
+
+ref_pt_SSF <- data.frame(`Ref.pt.` = c("F0.1", "F50%"), value = c(0.1, 0.06))
+
+compare_F(report, model_names = c("0%", "30%", "60%", "90%") %>% paste("BOF"), type2 = "summary", 
+          ylim = c(0, 0.12), forecast = FALSE) + 
+  geom_hline(data = ref_pt_SSF, aes(yintercept = value, linetype = `Ref.pt.`))
+ggsave("figures/assess/compare_F_BOF.png", height = 4, width = 7)
+
+
+# Compare max F
+report <- lapply(c("01A_CSF_0.6BOF", "01A_CSF_0.6BOF_maxF1", "01A_CSF_0.6BOF_maxF6"), 
+                 function(x) r4ss::SS_output(file.path(getwd(), "SS", x)))
+
+compare_SSB(report, model_names = c("3", "1", "6")) + scale_colour_discrete(name = "Max. F")
+ggsave("figures/assess/compare_SSB_maxF.png", height = 4, width = 7)
+
+compare_SSB(report, model_names = c("3", "1", "6"), type = "SSBMSY") + scale_colour_discrete(name = "Max. F")
+ggsave("figures/assess/compare_SSBMSY_maxF.png", height = 4, width = 7)
+
+compare_SSB(report, model_names = c("3", "1", "6"), type = "SSB0") + scale_colour_discrete(name = "Max. F")
+ggsave("figures/assess/compare_SSB0_maxF.png", height = 4, width = 7)
+
+ref_pt_SSF <- data.frame(`Ref.pt.` = c("F0.1", "F50%"), value = c(0.1, 0.06))
+
+compare_F(report, model_names = c("maxF = 3", "maxF = 1", "maxF = 6"), type2 = "summary", 
+          ylim = c(0, 0.5), forecast = FALSE) + 
+  geom_hline(data = ref_pt_SSF, aes(yintercept = value, linetype = `Ref.pt.`))
+ggsave("figures/assess/compare_F_BOF.png", height = 4, width = 7)
+
+plot_F_CSF(report[[3]])
+
+lapply(report, SSC_from_CSF) %>% lapply(getElement, "proj")
