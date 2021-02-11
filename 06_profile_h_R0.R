@@ -76,11 +76,13 @@ profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyve
 compare_SSB(profilemodels, model_names = paste("h =", format(h)))
 ggsave("figures/assess/profile_h_SSB_CSF.png", height = 4, width = 7)
 
-#compare_SSB(profilemodels, model_names = paste("h =", format(h)), type = "SSBMSY")
-#ggsave("figures/assess/profile_h_SSBMSY.png", height = 4, width = 7)
-#
-#compare_SSB(profilemodels, model_names = paste("h =", format(h)), type = "SSB0")
-#ggsave("figures/assess/profile_h_SSB0.png", height = 4, width = 7)
+compare_SSB(profilemodels, model_names = paste("h =", format(h)), type = "SSBMSY") + 
+  labs(y = expression(SSB/SSB[MSY]))
+ggsave("figures/assess/profile_h_SSBMSY_CSF.png", height = 4, width = 7)
+
+compare_SSB(profilemodels, model_names = paste("h =", format(h)), type = "SSB0")
+ggsave("figures/assess/profile_h_SSB0.png", height = 4, width = 7)
+
 #
 #compare_CAL(profilemodels, model_names = paste("h =", format(h)), fleet = 1, "SJR F")
 #compare_CAL(profilemodels, model_names = paste("h =", format(h)), fleet = 2, "SJR M")
@@ -89,8 +91,8 @@ ggsave("figures/assess/profile_h_SSB_CSF.png", height = 4, width = 7)
 compare_recruitment(profilemodels, model_names = paste("h =", format(h)))
 ggsave("figures/assess/profile_h_recruitment_CSF.png", height = 4, width = 7)
 
-ref_pt_SSF <- data.frame(`Ref.pt.` = c("F0.1", "F50%"), value = c(0.1, 0.06))
-compare_F(profilemodels, model_names = paste("h =", format(h)), type2 = "summary", ylim = c(0, 0.2)) +
+ref_pt_SSF <- data.frame(`Ref.pt.` = c("F0.1", "F50%"), value = c(0.13, 0.06))
+compare_F(profilemodels, model_names = paste("h =", format(h)), type2 = "summary", ylim = c(0, 0.15)) +
   geom_hline(data = ref_pt_SSF, aes(yintercept = value, linetype = `Ref.pt.`))
 ggsave("figures/assess/profile_h_F_CSF.png", height = 4, width = 7)
 
