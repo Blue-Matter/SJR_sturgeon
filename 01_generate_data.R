@@ -1,7 +1,5 @@
 
 
-library(dplyr)
-library(readxl)
 
 dir <- getwd()
 data_path <- file.path(dir, "data")
@@ -67,7 +65,6 @@ catch_by_sex <- generate_catch_by_sex(0.6)
 write.csv(catch_by_sex, "processed_data/catch_by_sex_0.6F.csv")
 
 
-
 generate_CAL_SJR <- function(bins = seq(40, 280, 5), month = 6) {
   
   sex_legend <- data.frame(Sex = c("f", "F", "j", "J", "m", "M", "M / J", "SF", "x", "X"),
@@ -80,19 +77,19 @@ generate_CAL_SJR <- function(bins = seq(40, 280, 5), month = 6) {
   CAL <- dplyr::filter(CAL, `TL(cm)` <= max(bins) & `TL(cm)` >= min(bins))
   
   ### Proportion female by weight
-  #CAL %>% mutate(TL_cm = ifelse(is.na(`TL(cm)`), `TL(in)` * 2.54, `TL(cm)`),
-  #               W = 2e-5 * TL_cm^2.72) %>% group_by(YYYY, Sout) %>% summarise(CC = sum(W, na.rm = TRUE)) %>%
-  #  dplyr::filter(Sout == "F" | Sout == "M") %>% group_by(YYYY) %>% mutate(PF = CC/sum(CC)) %>% 
-  #  dplyr::filter(Sout == "F") %>%
-  #  ggplot(aes(YYYY, PF)) + geom_line() + geom_point() + gfplot::theme_pbs() + 
-  #  labs(x = "Year", y = "Percent female")
-  #ggsave("figures/data/CAL_percent_female_weight.png", width = 4, height = 3)
-  #
-  #CAL %>% dplyr::filter(Sout == "F" | Sout == "M") %>% group_by(YYYY, Sout) %>% summarise(n = n()) %>%
-  #  group_by(YYYY) %>% mutate(PF = n/sum(n)) %>% dplyr::filter(Sout == "F") %>%
-  #  ggplot(aes(YYYY, PF)) + geom_line() + geom_point() + gfplot::theme_pbs() + 
-  #  labs(x = "Year", y = "Percent female")
-  #ggsave("figures/data/CAL_percent_female_abundance.png", width = 4, height = 3)
+  CAL %>% mutate(TL_cm = ifelse(is.na(`TL(cm)`), `TL(in)` * 2.54, `TL(cm)`),
+                 W = 2e-5 * TL_cm^2.72) %>% group_by(YYYY, Sout) %>% summarise(CC = sum(W, na.rm = TRUE)) %>%
+    dplyr::filter(Sout == "F" | Sout == "M") %>% group_by(YYYY) %>% mutate(PF = CC/sum(CC)) %>% 
+    dplyr::filter(Sout == "F") %>%
+    ggplot(aes(YYYY, PF)) + geom_line() + geom_point() + theme_bw() + 
+    labs(x = "Year", y = "Percent female by weight")
+  ggsave("figures/data/CAL_percent_female_weight.png", width = 4, height = 3)
+  
+  CAL %>% dplyr::filter(Sout == "F" | Sout == "M") %>% group_by(YYYY, Sout) %>% summarise(n = n()) %>%
+    group_by(YYYY) %>% mutate(PF = n/sum(n)) %>% dplyr::filter(Sout == "F") %>%
+    ggplot(aes(YYYY, PF)) + geom_line() + geom_point() + theme_bw() + 
+    labs(x = "Year", y = "Percent female by abundance")
+  ggsave("figures/data/CAL_percent_female_abundance.png", width = 4, height = 3)
   
   ### Harvested length comps
   CAL_harvest <- dplyr::filter(CAL, Harvested == 1) %>% 
@@ -109,8 +106,8 @@ generate_CAL_SJR <- function(bins = seq(40, 280, 5), month = 6) {
   CAL_rf <- CAL_r[, match(c("YYYY", paste0("F_", bins)), colnames(CAL_h))]
   CAL_rm <- CAL_r[, match(c("YYYY", paste0("M_", bins)), colnames(CAL_h))]
   
-  SAMtool::plot_composition(Year = CAL_h$YYYY, CAL_rf[, -1], CAL_hf[, -1], CAL_bins = bins, annual_yscale = "raw") # Black = release, red = retained
-  SAMtool::plot_composition(Year = CAL_h$YYYY, CAL_rm[, -1], CAL_hm[, -1], CAL_bins = bins, annual_yscale = "raw") # Black = release, red = retained
+  #SAMtool::plot_composition(Year = CAL_h$YYYY, CAL_rf[, -1], CAL_hf[, -1], CAL_bins = bins, annual_yscale = "raw") # Black = release, red = retained
+  #SAMtool::plot_composition(Year = CAL_h$YYYY, CAL_rm[, -1], CAL_hm[, -1], CAL_bins = bins, annual_yscale = "raw") # Black = release, red = retained
   
   ### Sex ratio
   sexratio_harvest <- CAL_harvest %>% group_by(YYYY, Sout) %>% summarise(n_harvest = n())
@@ -122,7 +119,6 @@ generate_CAL_SJR <- function(bins = seq(40, 280, 5), month = 6) {
   sex_ratio_catch <- dplyr::filter(sex_ratio, Sout == "F")$n/dplyr::filter(sex_ratio, Sout == "M")$n
   plot(2007:2020, sex_ratio_harvest)
   plot(2007:2020, sex_ratio_catch)
-  
   
   ### Process for SS
   CAL_out <- list(harvest_f = CAL_hf, harvest_m = CAL_hm, rel_f = CAL_rf, rel_m = CAL_rm)
@@ -202,3 +198,22 @@ generate_CAA_Minas <- function(month = 6, Year_superperiod = 2005:2009) {
 }
 CAA_Minas <- generate_CAA_Minas()
 write.csv(CAA_Minas, "processed_data/CAA_Minas.csv")
+
+
+
+############## Compare BoF vs SJR catch
+png("figures/data/catch_contemporary.png", width = 4, height = 3, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+catch %>% dplyr::filter(Fleet == 1) %>% plot(Catch ~ Year, ., typ = "o", ylab = "Catch (thousands)")
+dev.off()
+
+png("figures/data/catch_hist.png", width = 4, height = 3, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+hist <- readxl::read_excel("data/Table_4_Bradford_2016.xlsx")
+plot(SJR ~ Year, hist, typ = "n", ylim = c(0, 50), ylab = "Catch (t)")
+abline(h = 0, col = "grey")
+lines(NB_Fundy + NS_Fundy ~ Year, hist, col = "red", lwd = 3)
+lines(SJR ~ Year, hist, lwd = 3)
+legend("topleft", c("SJR", "Bay of Fundy"), col = c("black", "red"), lwd = 3)
+dev.off()
+
