@@ -66,7 +66,7 @@ fishery <- readxl::read_excel(file.path(data_path, "sturgeon summary table start
 n_nets <- group_by(fishery, year, month) %>% summarise(nets_per_day = mean(nets), nets = sum(nets)) %>% 
   group_by(year) %>% mutate(percent_nets = nets/sum(nets), Month = as.factor(month))
 
-ggplot(n_nets, aes(year, nets_per_day, colour = Month)) + geom_line() + geom_point() + gfplot::theme_pbs() +
+ggplot(n_nets, aes(year, nets_per_day, colour = Month)) + geom_line() + geom_point() + theme_bw() +
   labs(y = "Nets per day")
 ggsave("figures/data/nets_per_day.png", height = 3, width = 4)
 
@@ -74,36 +74,53 @@ ggsave("figures/data/nets_per_day.png", height = 3, width = 4)
 empty_nets <- group_by(fishery, year, month) %>% summarise(percent_empty = sum(!cpue)/n()) %>%
   mutate(Month = as.factor(month))
 ggplot(empty_nets, aes(year, percent_empty, colour = Month)) + geom_line() + geom_point() + 
-  facet_wrap(~ Month) + gfplot::theme_pbs() + labs(y = "Empty nets (%)")
+  facet_wrap(~ Month) + theme_bw() + labs(y = "Empty nets (%)")
 ggsave("figures/data/empty_nets.png", height = 3, width = 4)
 
 
 # CPUE increases with Flow
-ggplot(fishery, aes(Flow, cpue, colour = Month)) + geom_point() + gfplot::theme_pbs() + labs(y = "Observed CPUE")
+ggplot(fishery, aes(Flow, cpue, colour = Month)) + geom_point() + theme_bw() + labs(y = "Observed CPUE")
 ggsave("figures/data/cpue_vs_flow.png", height = 3, width = 5)
 
 ggplot(fishery, aes(log(Flow), log(cpue), colour = Month)) + 
-  geom_point() + gfplot::theme_pbs() + labs(y = "Observed log(CPUE)")
+  geom_point() + theme_bw() + labs(y = "Observed log(CPUE)")
 ggsave("figures/data/log_cpue_vs_flow.png", height = 3, width = 5)
+
+# CPUE vs effort
+ggplot(fishery, aes(nets, cpue)) + geom_smooth() + 
+  geom_jitter(width = 0.2, height = 0, alpha = 0.8, aes(colour = Month)) +
+  theme_bw() + labs(x = "Effort (nets per day)", y = "Observed CPUE")
+ggsave("figures/data/cpue_vs_effort.png", height = 3, width = 5)
+
+ggplot(fishery, aes(nets, log(cpue))) + geom_smooth() +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.8, aes(colour = Month)) +
+  theme_bw() + labs(x = "Effort (nets per day)", y = "Observed log(CPUE)")
+ggsave("figures/data/log_cpue_vs_effort.png", height = 3, width = 5)
+
+
+ggplot(fishery, aes(nets, log(cpue))) + facet_wrap(~Month) + geom_smooth() +
+  geom_jitter(width = 0.2, height = 0, alpha = 0.8, aes(colour = Month)) +
+  theme_bw() + labs(x = "Effort (nets per day)", y = "Observed log(CPUE)")
+ggsave("figures/data/log_cpue_vs_effort_by_month.png", height = 3, width = 5)
 
 # CPUE with temperature
 ggplot(fishery, aes(ETemp, cpue, colour = Month)) + 
-  geom_point() + gfplot::theme_pbs() + labs(x = "Temperature at Evandale", y = "Observed CPUE")
+  geom_point() + theme_bw() + labs(x = "Temperature at Evandale", y = "Observed CPUE")
 ggsave("figures/data/cpue_vs_temp.png", height = 3, width = 5)
 
 ggplot(fishery %>% mutate(Month = as.factor(month)), aes(log(ETemp), log(cpue), colour = Month)) + 
-  geom_point() + gfplot::theme_pbs()
+  geom_point() + theme_bw()
 ggsave("figures/data/log_cpue_vs_temp.png", height = 3, width = 5)
 
 # flow vs month
 flow <- group_by(fishery, year, Month) %>% summarise(Flow = mean(Flow))
 ggplot(flow, aes(year, Flow, colour = Month)) + geom_line() + geom_point() + 
-  gfplot::theme_pbs() + coord_cartesian(ylim = c(0, 60000))
+  theme_bw() + coord_cartesian(ylim = c(0, 60000))
 ggsave("figures/data/Flow_month.png", height = 2.5, width = 4)
 
 # Monthly values
 ggplot(fishery, aes(year, cpue, colour = Month)) + facet_wrap(~ Month) + geom_point() + 
-  gfplot::theme_pbs() + labs(y = "Observed CPUE")
+  theme_bw() + labs(y = "Observed CPUE")
 ggsave("figures/data/daily_CPUE.png", height = 3, width = 4)
 
 cpue_val <- fishery %>% group_by(year, Month) %>% 
@@ -113,7 +130,7 @@ cpue_val <- fishery %>% group_by(year, Month) %>%
 ggplot(cpue_val, aes(year, obs, colour = Month)) + 
   facet_wrap(~ Month) + 
   geom_line() + geom_point() + geom_linerange(aes(ymin = lower, ymax = upper)) + 
-  gfplot::theme_pbs() + coord_cartesian(ylim = c(0, 8)) +
+  theme_bw() + coord_cartesian(ylim = c(0, 8)) +
   labs(y = "Observed CPUE")
 ggsave("figures/data/CPUE_month.png", height = 3, width = 4)
 
@@ -124,7 +141,7 @@ cpue_val <- fishery %>% group_by(year, Month) %>%
 ggplot(cpue_val, aes(year, obs, colour = Month)) + 
   facet_wrap(~ Month, scales = "free_y") + 
   geom_line() + geom_point() + geom_linerange(aes(ymin = lower, ymax = upper)) + 
-  gfplot::theme_pbs() + labs(y = "Observed log(CPUE)")
+  theme_bw() + labs(y = "Observed log(CPUE)")
 ggsave("figures/data/log_CPUE_month.png", height = 3, width = 4)
 
 
@@ -140,21 +157,42 @@ data_mod <- fishery %>% dplyr::filter(mm != 9, year >= 2009) %>% mutate(offset =
 #m5q <- glm(catch ~ yy * mm + ln_Flow_Z, data = data_mod, family = "quasipoisson", offset = offset)
 #AIC(m1q, m2q, m3q, m4q, m5q)
 
-m1nb <- MASS::glm.nb(catch ~ offset(offset) + as.factor(year), data = data_mod)
-m2nb <- MASS::glm.nb(catch ~ offset(offset) + yy + mm, data = data_mod)
-m3nb <- MASS::glm.nb(catch ~ offset(offset) + yy * mm, data = data_mod)
-m4nb <- MASS::glm.nb(catch ~ offset(offset) + yy + mm + ln_Flow_Z, data = data_mod)
-m5nb <- MASS::glm.nb(catch ~ offset(offset) + yy * mm + ln_Flow_Z, data = data_mod)
+m1nb <- MASS::glm.nb(catch ~ 0 + offset(offset) + yy, data = data_mod)
+m2nb <- MASS::glm.nb(catch ~ 0 + offset(offset) + yy + mm, data = data_mod)
+m3nb <- MASS::glm.nb(catch ~ 0 + offset(offset) + yy * mm, data = data_mod)
+m4nb <- MASS::glm.nb(catch ~ 0 + offset(offset) + yy + mm + ln_Flow_Z, data = data_mod)
+m5nb <- MASS::glm.nb(catch ~ 0 + offset(offset) + yy * mm + ln_Flow_Z, data = data_mod)
 AIC(m1nb, m2nb, m3nb, m4nb, m5nb)
 
-m1p <- glm(catch ~ as.factor(year), data = data_mod, family = "poisson", offset = offset)
-m2p <- glm(catch ~ yy + mm, data = data_mod, family = "poisson", offset = offset)
-m3p <- glm(catch ~ yy * mm, data = data_mod, family = "poisson", offset = offset)
-m4p <- glm(catch ~ yy + mm + ln_Flow_Z, data = data_mod, family = "poisson", offset = offset)
-m5p <- glm(catch ~ yy * mm + ln_Flow_Z, data = data_mod, family = "poisson", offset = offset)
+m1p <- glm(catch ~ 0 +yy, data = data_mod, family = "poisson", offset = offset)
+m2p <- glm(catch ~ 0 +yy + mm, data = data_mod, family = "poisson", offset = offset)
+m3p <- glm(catch ~ 0 +yy * mm, data = data_mod, family = "poisson", offset = offset)
+m4p <- glm(catch ~ 0 +yy + mm + ln_Flow_Z, data = data_mod, family = "poisson", offset = offset)
+m5p <- glm(catch ~ 0 +yy * mm + ln_Flow_Z, data = data_mod, family = "poisson", offset = offset)
 AIC(m1p, m2p, m3p, m4p, m5p)
 
-AIC(m1p, m2p, m3p, m4p, m5p, m1nb, m2nb, m3nb, m4nb, m5nb)
+comp_mod <- AIC(m1p, m2p, m3p, m4p, m5p, m1nb, m2nb, m3nb, m4nb, m5nb)
+comp_mod$delta_AIC <- comp_mod$AIC %>% `-`(min(.)) %>% round(2)
+comp_mod$theta <- lapply(list(m1p, m2p, m3p, m4p, m5p, m1nb, m2nb, m3nb, m4nb, m5nb), getElement, "theta") %>%
+  sapply(function(x) if(is.null(x)) NA_real_ else x)
+write.csv(comp_mod, file = "tables/CPUE_AIC.csv")
+
+png("figures/data/CPUE_model_diagnostics.png", height = 8, width = 6, units = "in", res = 600)
+mout <- m3nb
+par(mfrow = c(3, 2), mar = c(5, 4, 1.5, 1))
+plot(mout, which = 1:3)
+
+resid(mout) %>% hist(main = "Histogram of Residuals", xlab = "Residuals", font.main = 1)
+box()
+
+data.frame(Residuals = resid(mout), Year = mout$model$yy) %>% plot(Residuals ~ Year, .)
+abline(h = 0, lty = 2)
+
+data.frame(Residuals = resid(mout), Month = mout$model$mm) %>% plot(Residuals ~ Month, .)
+abline(h = 0, lty = 2)
+
+dev.off()
+
 
 # By year
 newdata <- expand.grid(yy = unique(data_mod$yy), mm = factor(c(5, 7, 8)),
@@ -177,11 +215,16 @@ annual_cpue <- mutate(newdata,
 
 write.csv(annual_cpue, "processed_data/cpue_series.csv")
 
+
 ggplot(annual_cpue %>% mutate(yy = as.numeric(yy)), aes(yy, sd, colour = variable)) + 
   facet_wrap(~variable) + geom_line() + geom_point()
+
 ggplot(annual_cpue %>% mutate(yy = as.numeric(yy)), aes(yy, rel_val, colour = variable)) + 
   facet_wrap(~variable) + geom_line() + geom_point()
 
-
-ggplot(annual_cpue %>% mutate(yy = as.numeric(yy)) %>% dplyr::filter(variable %in% c("m5nb", "obs")), 
-       aes(yy, rel_val, colour = variable)) + geom_line() + geom_point() + gfplot::theme_pbs()
+annual_cpue %>% mutate(yy = as.numeric(yy)) %>% dplyr::filter(variable %in% c("m5nb", "obs")) %>%
+  dplyr::mutate(Type = ifelse(variable == "m5nb", "Standardized", "Observed")) %>%
+  ggplot(aes(yy + 2006, rel_val, linetype = Type, shape = Type)) + geom_line() + geom_point() + theme_bw() +
+  labs(x = "Year", y = "CPUE (rescaled)") + coord_cartesian(ylim = c(0, 3)) + geom_hline(yintercept = 0, colour = "grey")
+ggsave("figures/data/CPUE_std_compare.png", height = 4, width = 7)
+  
