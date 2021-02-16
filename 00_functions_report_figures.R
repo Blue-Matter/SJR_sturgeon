@@ -30,28 +30,6 @@ plot_mat <- function(type = c("length", "age")) {
   invisible()
 }
 
-#plot_mat <- function(dir, type = c("length", "age")) { # Fleet # of SJR F, SJR M, BOF
-#  
-#  if(is.character(dir)) {
-#    replist <- r4ss::SS_output(file.path(getwd(), "SS", dir))
-#  } else if(is.list(dir)) {
-#    replist <- dir
-#  } else {
-#    stop()
-#  }
-#  
-#  type <- match.arg(type)
-#  
-#  if(type == "length") {
-#    plot(Mat_len ~ Mean_Size, replist$biology, 
-#         xlab = "Length (cm)", ylab = "Maturity", typ = "o", pch = 16, lwd = 2)
-#  } else {
-#    plot(Len_Mat * Age_Mat ~ int_Age, replist$endgrowth %>% dplyr::filter(Sex == 1), 
-#         xlab = "Age", ylab = "Maturity", typ = "o", pch = 16, lwd = 2)
-#  }
-#  invisible()
-#}
-
 plot_sel_mat <- function(dir, type = c("length", "age"), fleet = c(1, 1, 3), sex = c(1, 2, 1)) { # Fleet # of SJR F, SJR M, BOF
   
   if(is.character(dir)) {
@@ -92,27 +70,27 @@ plot_sel_mat <- function(dir, type = c("length", "age"), fleet = c(1, 1, 3), sex
   }
 }
 
-plot_mat <- function(dir, type = c("length", "age")) { # Fleet # of SJR F, SJR M, BOF
-  
-  if(is.character(dir)) {
-    replist <- r4ss::SS_output(file.path(getwd(), "SS", dir))
-  } else if(is.list(dir)) {
-    replist <- dir
-  } else {
-    stop()
-  }
-  
-  type <- match.arg(type)
-  
-  if(type == "length") {
-    plot(Mat_len ~ Mean_Size, replist$biology, 
-         xlab = "Length (cm)", ylab = "Maturity", typ = "o", pch = 16, lwd = 2)
-  } else {
-    plot(Len_Mat * Age_Mat ~ int_Age, replist$endgrowth %>% dplyr::filter(Sex == 1), 
-         xlab = "Age", ylab = "Maturity", typ = "o", pch = 16, lwd = 2)
-  }
-  invisible()
-}
+#plot_mat <- function(dir, type = c("length", "age")) { # Fleet # of SJR F, SJR M, BOF
+#  
+#  if(is.character(dir)) {
+#    replist <- r4ss::SS_output(file.path(getwd(), "SS", dir))
+#  } else if(is.list(dir)) {
+#    replist <- dir
+#  } else {
+#    stop()
+#  }
+#  
+#  type <- match.arg(type)
+#  
+#  if(type == "length") {
+#    plot(Mat_len ~ Mean_Size, replist$biology, 
+#         xlab = "Length (cm)", ylab = "Maturity", typ = "o", pch = 16, lwd = 2)
+#  } else {
+#    plot(Len_Mat * Age_Mat ~ int_Age, replist$endgrowth %>% dplyr::filter(Sex == 1), 
+#         xlab = "Age", ylab = "Maturity", typ = "o", pch = 16, lwd = 2)
+#  }
+#  invisible()
+#}
 
 plot_catch <- function(replist = r4ss::SS_output(file.path(getwd(), "SS", "03A_SSF_0.6BOF")), type = c("wt", "abun")) {
   type <- match.arg(type)
@@ -159,7 +137,7 @@ plot_CAL <- function(replist, fleet = 1, fleetname = "SJR F", plotfit = TRUE) {
   }
 }
 
-report_table <- function(replist) {
+report_table <- function(replist, fleet) {
   ts_B <- replist$timeseries %>% dplyr::filter(Era == "INIT" | Era == "TIME")
   ts_F <- replist$derived_quants[replist$derived_quants$Label %in% paste0("F_", replist$startyr:replist$endyr), ]
 
@@ -173,9 +151,14 @@ report_table <- function(replist) {
   SSN <- get_SSN()
   Fout <- numeric(length(replist$startyr:replist$endyr))
   Fout[paste0("F_", replist$startyr:replist$endyr) %in% ts_F$Label] <- ts_F$Value
-  data.frame(Year = ts_B$Yr, SSB = ts_B$SpawnBio, FM = c(0, Fout), 
-             SSN_F = SSN[[1]] * 1e3, SSN_M = SSN[[2]] * 1e3) %>% 
+  out <- data.frame(Year = ts_B$Yr, SSB = ts_B$SpawnBio %>% round(1), FM = c(0, Fout) %>% round(2), 
+                    SSN_F = SSN[[1]] * 1e3, SSN_M = SSN[[2]] * 1e3) %>% 
     dplyr::mutate(SSN = round(SSN_F + SSN_M, 0), SSN_F = round(SSN_F), SSN_M = round(SSN_M))
+  if(!missing(fleet)) {
+    out_fleetF <- lapply(fleet, function(x) parse(text = paste0("ts_B$`F:_", x, "`")) %>% eval() %>% round(2)) %>% bind_cols()
+    out <- cbind(out, out_fleetF)
+  }
+  return(out)
 }
 
 compare_SSN <- function(report, model_names) {

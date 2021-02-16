@@ -2,7 +2,6 @@ source("00_functions_report_figures.R")
 
 dir <- "01A_CSF_0.6BOF"
 replist <- r4ss::SS_output(file.path(getwd(), "SS", dir))
-
 # Ref
 # FMSY = 0.0830294
 # F01 = 0.10
@@ -128,9 +127,31 @@ ggsave("figures/assess/long_model_CAL_BOF.png", height = 3, width = 4)
 compare_CAA(list(replist), "Fit", fleetname = "BOF")
 ggsave("figures/assess/long_model_CAA_BOF.png", height = 3, width = 4)
 
+# Plot residuals
+make_residuals <- function(replist, fleet = 1, gender = 1, type = c("age", "length")) {
+  if(type == "length") {
+    obs <- replist$lendbase %>% dplyr::filter(Fleet == fleet, sex == gender) %>% 
+      dplyr::select(Yr, Bin, Obs, Nsamp_in) %>% dplyr::mutate(Obs = Nsamp_in * Obs) %>%
+      reshape2::acast(Yr ~ Bin, value.var = "Obs", fill = 0)
+    
+    pred <- replist$lendbase %>% dplyr::filter(Fleet == fleet, sex == gender) %>% 
+      dplyr::select(Yr, Bin, Exp, Nsamp_in) %>% dplyr::mutate(Exp = Nsamp_in * Exp) %>%
+      reshape2::acast(Yr ~ Bin, value.var = "Exp", fill = 0)
+    
+    SAMtool::plot_composition(rownames(obs) %>% as.numeric(), obs, pred, bubble_adj = 20,
+                              CAL_bins = colnames(obs) %>% as.numeric(), plot_type = "bubble_residuals")
+  } else {
+    out <- replist$agedbase
+  }
+  
+  
+  
+  
+}
+
 # Plot SSN
-sum_table <- report_table(replist)
-#write.csv(sum_table, file = "tables/report_refmodel.csv")
+sum_table <- report_table(replist, fleet = c(1, 2, 3))
+write.csv(sum_table, file = "tables/report_refmodel.csv")
 
 png("figures/assess/SSN_ref.png", height = 4, width = 6, res = 400, units = "in")
 par(mar = c(5, 4, 1, 1))
@@ -196,8 +217,15 @@ ggsave("figures/assess/compare_F_fleet_structure.png", height = 4, width = 7)
 lapply(report, SSC_from_CSF) %>% lapply(getElement, "proj")
 
 # Long model with tags
+
+report <- lapply(c("01A_CSF_0.6BOF", "01A_CSF_0.6BOF_tags"), 
+                 function(x) r4ss::SS_output(file.path(getwd(), "SS", x)))
+
 report <- lapply(c("03A_SSF_0.6BOF", "03A_SSF_0.6BOF_tags2", "03A_SSF_0.6BOF_tags4", "03A_SSF_0.6BOF_tags4_upweight"), 
                  function(x) r4ss::SS_output(file.path(getwd(), "SS", x)))
+
+compare_SSB(report, model_names = c("No tags", "Tags (delay 2)"))
+r4ss::SSplotTags(report[[2]])
 
 compare_SSB(report, model_names = c("No tags", "Tags (delay 2)", "Tags (delay 4)", "Tags (delay 4, upweighted)"))
 ggsave("figures/assess/compare_SSB_tags.png", height = 4, width = 7)

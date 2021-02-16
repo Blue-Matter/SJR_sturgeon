@@ -16,7 +16,7 @@ mac_flow_daily <- group_by(mac_flow, ymd) %>% summarise(Flow = mean(Flow, na.rm 
 
 # Flow plots
 png("figures/data/MQTDF.png", height = 4, width = 6, units = "in", res = 400)
-plot(Flow ~ ymd, mac_flow_daily, typ = 'l', xlab = "Date", ylab = "Mactaquac Flow")
+plot(Flow ~ ymd, mac_flow_daily, typ = 'l', xlab = "Time", ylab = "Mactaquac flow (cfs)")
 dev.off()
 
 mac_flow_daily %>% mutate(year = lubridate::year(ymd), month = lubridate::month(ymd)) %>%
@@ -67,7 +67,7 @@ n_nets <- group_by(fishery, year, month) %>% summarise(nets_per_day = mean(nets)
   group_by(year) %>% mutate(percent_nets = nets/sum(nets), Month = as.factor(month))
 
 ggplot(n_nets, aes(year, nets_per_day, colour = Month)) + geom_line() + geom_point() + theme_bw() +
-  labs(y = "Nets per day")
+  labs(y = "Nets per day") + labs(x = "Year") + coord_cartesian(ylim = c(0, 12))
 ggsave("figures/data/nets_per_day.png", height = 3, width = 4)
 
 # percent of empty nets
@@ -115,7 +115,7 @@ ggsave("figures/data/log_cpue_vs_temp.png", height = 3, width = 5)
 # flow vs month
 flow <- group_by(fishery, year, Month) %>% summarise(Flow = mean(Flow))
 ggplot(flow, aes(year, Flow, colour = Month)) + geom_line() + geom_point() + 
-  theme_bw() + coord_cartesian(ylim = c(0, 60000))
+  theme_bw() + coord_cartesian(ylim = c(0, 60000)) + labs(x = "Year", y = "Mactaquac Flow (cfs)")
 ggsave("figures/data/Flow_month.png", height = 2.5, width = 4)
 
 # Monthly values
@@ -157,23 +157,27 @@ data_mod <- fishery %>% dplyr::filter(mm != 9, year >= 2009) %>% mutate(offset =
 #m5q <- glm(catch ~ yy * mm + ln_Flow_Z, data = data_mod, family = "quasipoisson", offset = offset)
 #AIC(m1q, m2q, m3q, m4q, m5q)
 
+m0nb <- MASS::glm.nb(catch ~ offset(offset), data = data_mod)
 m1nb <- MASS::glm.nb(catch ~ 0 + offset(offset) + yy, data = data_mod)
 m2nb <- MASS::glm.nb(catch ~ 0 + offset(offset) + yy + mm, data = data_mod)
 m3nb <- MASS::glm.nb(catch ~ 0 + offset(offset) + yy * mm, data = data_mod)
 m4nb <- MASS::glm.nb(catch ~ 0 + offset(offset) + yy + mm + ln_Flow_Z, data = data_mod)
 m5nb <- MASS::glm.nb(catch ~ 0 + offset(offset) + yy * mm + ln_Flow_Z, data = data_mod)
-AIC(m1nb, m2nb, m3nb, m4nb, m5nb)
+AIC(m0nb, m1nb, m2nb, m3nb, m4nb, m5nb)
 
-m1p <- glm(catch ~ 0 +yy, data = data_mod, family = "poisson", offset = offset)
-m2p <- glm(catch ~ 0 +yy + mm, data = data_mod, family = "poisson", offset = offset)
-m3p <- glm(catch ~ 0 +yy * mm, data = data_mod, family = "poisson", offset = offset)
-m4p <- glm(catch ~ 0 +yy + mm + ln_Flow_Z, data = data_mod, family = "poisson", offset = offset)
-m5p <- glm(catch ~ 0 +yy * mm + ln_Flow_Z, data = data_mod, family = "poisson", offset = offset)
-AIC(m1p, m2p, m3p, m4p, m5p)
+m0p <- glm(catch ~ 1, data = data_mod, family = "poisson", offset = offset)
+m1p <- glm(catch ~ 0 + yy, data = data_mod, family = "poisson", offset = offset)
+m2p <- glm(catch ~ 0 + yy + mm, data = data_mod, family = "poisson", offset = offset)
+m3p <- glm(catch ~ 0 + yy * mm, data = data_mod, family = "poisson", offset = offset)
+m4p <- glm(catch ~ 0 + yy + mm + ln_Flow_Z, data = data_mod, family = "poisson", offset = offset)
+m5p <- glm(catch ~ 0 + yy * mm + ln_Flow_Z, data = data_mod, family = "poisson", offset = offset)
+AIC(m0p, m1p, m2p, m3p, m4p, m5p)
 
-comp_mod <- AIC(m1p, m2p, m3p, m4p, m5p, m1nb, m2nb, m3nb, m4nb, m5nb)
+aov(m5nb) %>% summary()
+
+comp_mod <- AIC(m0p, m1p, m2p, m3p, m4p, m5p, m0nb, m1nb, m2nb, m3nb, m4nb, m5nb)
 comp_mod$delta_AIC <- comp_mod$AIC %>% `-`(min(.)) %>% round(2)
-comp_mod$theta <- lapply(list(m1p, m2p, m3p, m4p, m5p, m1nb, m2nb, m3nb, m4nb, m5nb), getElement, "theta") %>%
+comp_mod$theta <- lapply(list(m0p, m1p, m2p, m3p, m4p, m5p, m0nb, m1nb, m2nb, m3nb, m4nb, m5nb), getElement, "theta") %>%
   sapply(function(x) if(is.null(x)) NA_real_ else x)
 write.csv(comp_mod, file = "tables/CPUE_AIC.csv")
 
