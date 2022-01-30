@@ -2,7 +2,7 @@
 
 This repository hosts the model files for the 2021 SJR Atlantic sturgeon assessment:
 
-- `01A_CSF_0.6BOF` is the closest thing to a 'base' assessment, as no single model was presented. 
+- `01A_CSF_0.6BOF` is the closest thing to a 'base' assessment, as no single model was presented by itself. 
 - `01A_CSF_0.6BOF_dome` implements dome selectivity for the SJR fishery.
 - `03A_SSF_0.6BOF` makes an assumption about the sex ratio of historical catches prior to 2007.
 
