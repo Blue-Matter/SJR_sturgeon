@@ -3,9 +3,9 @@
 #Foreign copyrights may apply. See copyright.txt for more information.
 #C  generic forecast file
 # for all year entries except rebuilder; enter either: actual year, -999 for styr, 0 for endyr, neg number for rel. endyr
-1 # Benchmarks: 0=skip; 1=calc F_spr,F_btgt,F_msy; 2=calc F_spr,F0.1,F_msy 
+2 # Benchmarks: 0=skip; 1=calc F_spr,F_btgt,F_msy; 2=calc F_spr,F0.1,F_msy 
 2 # MSY: 1= set to F(SPR); 2=calc F(MSY); 3=set to F(Btgt) or F0.1; 4=set to F(endyr) 
-0.50 # SPR target (e.g. 0.40)
+0.60 # SPR target (e.g. 0.40)
 0.40 # Biomass target (e.g. 0.40)
 #_Bmark_years: beg_bio, end_bio, beg_selex, end_selex, beg_relF, end_relF, beg_recr_dist, end_recr_dist, beg_SRparm, end_SRparm (enter actual year, or values of 0 or -integer to be rel. endyr)
  0 0 0 0 0 0 0 0 0 0
@@ -41,6 +41,7 @@
 # enter list of: fleet number, max annual catch for fleets with a max; terminate with fleet=-9999
 1 0.350
 2 0
+3 0
 -9999 -1
 # enter list of area ID and max annual catch; terminate with area=-9999
 1 0.350
@@ -54,16 +55,16 @@
 3 # basis for input Fcast catch: -1=read basis with each obs; 2=dead catch; 3=retained catch; 99=input Hrate(F)
 #enter list of Fcast catches; terminate with line having year=-9999
 #_Yr Seas Fleet Catch(or_F) Basis 
-2021 1 1 0.350
-2022 1 1 0.350
-2023 1 1 0.350
-2024 1 1 0.350
-2025 1 1 0.350
-2026 1 1 0.350
-2027 1 1 0.350
-2028 1 1 0.350
-2029 1 1 0.350
-2030 1 1 0.350
+2021 1 1 0.3
+2022 1 1 0.3
+2023 1 1 0.3
+2024 1 1 0.3
+2025 1 1 0.3
+2026 1 1 0.3
+2027 1 1 0.3
+2028 1 1 0.3
+2029 1 1 0.3
+2030 1 1 0.3
 2021 1 2 0
 2022 1 2 0
 2023 1 2 0
@@ -74,6 +75,16 @@
 2028 1 2 0
 2029 1 2 0
 2030 1 2 0
+2021 1 3 0
+2022 1 3 0
+2023 1 3 0
+2024 1 3 0
+2025 1 3 0
+2026 1 3 0
+2027 1 3 0
+2028 1 3 0
+2029 1 3 0
+2030 1 3 0
 -9999 1 1 0
 #
 999 # verify end of input 

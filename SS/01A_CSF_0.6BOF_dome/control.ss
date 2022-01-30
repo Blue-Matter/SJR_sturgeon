@@ -53,7 +53,7 @@
 5 #_First_Mature_Age
 1 #_fecundity option:(1)eggs=Wt*(a+b*Wt);(2)eggs=a*L^b;(3)eggs=a*Wt^b; (4)eggs=a+b*L; (5)eggs=a+b*W
 0 #_hermaphroditism option:  0=none; 1=female-to-male age-specific fxn; -1=male-to-female age-specific fxn
-1 #_parameter_offset_approach (1=none, 2= M, G, CV_G as offset from female-GP1, 3=like SS2 V1.x)
+2 #_parameter_offset_approach (1=none, 2= M, G, CV_G as offset from female-GP1, 3=like SS2 V1.x)
 #
 
 ## FEMALE BIOLOGY
@@ -81,14 +81,14 @@
 
 ## MALE BIOLOGY
 # Sex: 2  BioPattern: 1  NatMort
-0.05	0.10	0.09	0		0		0		-50		0	0	0	0	0	0	0 # NatM_p_1_Mal_GP_1
+0		1		0.4054651	0		0		0		-50		0	0	0	0	0	0	0 # NatM_p_1_Mal_GP_1
 
 # Sex: 2  BioPattern: 1  Growth
-1		45		21		0		0		0		-50		0	0	0	0	0	0	0 # L_at_Amin_Mal_GP_1
-200		300		230		0		0		0		-50		0	0	0	0	0	0	0 # L_at_Amax_Mal_GP_1
-0.01	0.2		0.06	0		0		0		-50		0	0	0	0	0	0	0 # VonBert_K_Mal_GP_1
-0.01	0.2		0.1		0		0		0		-50		0	0	0	0	0	0	0 # CV_young_Mal_GP_1
-0.01	0.2		0.1		0		0		0		-50		0	0	0	0	0	0	0 # CV_old_Mal_GP_1
+0		45		0.0639038		0		0		0		-50		0	0	0	0	0	0	0 # L_at_Amin_Mal_GP_1
+-1		1		-0.1378698		0		0		0		-50		0	0	0	0	0	0	0 # L_at_Amax_Mal_GP_1
+0.01	0.5		0.4054651	0		0		0		-50		0	0	0	0	0	0	0 # VonBert_K_Mal_GP_1
+0		0.2		0		0		0		0		-50		0	0	0	0	0	0	0 # CV_young_Mal_GP_1
+0		0.2		0		0		0		0		-50		0	0	0	0	0	0	0 # CV_old_Mal_GP_1
 
 # Sex: 2  BioPattern: 1  WtLen
 0		0.1		2e-5	0		0		0		-50		0	0	0	0	0	0	0 # Wtlen_1_Mal_GP_1
@@ -101,8 +101,11 @@
  #0 0 0 0 0 0 -4 0 0 0 0 0 0 0 # RecrDist_Area_1
  #0 0 0 0 0 0 -4 0 0 0 0 0 0 0 # RecrDist_month_1
 
+
 #  Cohort growth dev base
  0.1 10 1 1 1 0 -1 0 0 0 0 0 0 0 # CohortGrowDev
+
+0 2 1.67 0 0 -1 -50 0 0 0 0 0 0 0 # Catch_Mult:_3_Historical_BayofFundy
 
 #  Movement
 #  Age Error from parameters
@@ -185,7 +188,7 @@
 #_survey: 4 Depletion is a depletion fleet
 #_Q_setup(f,2)=0; add 1 to phases of all parms; only R0 active in new phase 1
 #_fleet link link_info  extra_se   biasadj     float  #  fleetname
- 3	1	0	0	0	2  #  Survey
+ 4	1	0	0	0	1  #  Survey
 -9999 0 0 0 0 0	   
 
 #_Q_parms(if_any);Qunits_are_ln(q)
@@ -214,7 +217,8 @@
 #_Pattern Discard Male Special
  24 0 3 0 # 1 F1
  15 0 0 1 # 2 F2
- 15 0 0 1 # 4 S3
+ 24 0 0 1 # 3 F3
+ 0 0 0 0 # 4 S4
 #
 #_age_selex_patterns
 #Pattern:_0; parm=0; selex=1.0 for ages 0 to maxage
@@ -236,25 +240,32 @@
 #_Pattern Discard Male Special
  10 0 0 0 # 1 F1
  10 0 0 0 # 2 F2
- 10 0 0 0 # 4 S3
+ 10 0 0 0 # 3 F3
+ 10 0 0 0 # 4 S4
 #
 #_          LO            HI          INIT         PRIOR         PR_SD       PR_type      PHASE    env-var    use_dev   dev_mnyr   dev_mxyr     dev_PH      Block    Blk_Fxn  #  parm_name
 ### Size Selectivity
 #_LO 	HI 		INIT 	PRIOR	SD	PR_type PHASE   env-var use_dev dev_minyr dev_maxyr dev_stddev Block Block_Fxn
 130		250		200		0		0	0		2		0	0	0	0	0	0	0 #  Size_DblN_peak_Fishery(1)
--15.0	15.0	15		0		0	0		-50		0	0	0	0	0	0	0 #  Size_DblN_top_logit_Fishery(1)
+-15.0	15.0	-1		0		0	0		2		0	0	0	0	0	0	0 #  Size_DblN_top_logit_Fishery(1)
 -5.0	10.0	5		0		0	0		2		0	0	0	0	0	0	0 #  Size_DblN_ascend_se_Fishery(1)
--5.0	20.0	15		0		0	0		-50		0	0	0	0	0	0	0 #  Size_DblN_descend_se_Fishery(1)
+-5.0	20.0	5		0		0	0		2		0	0	0	0	0	0	0 #  Size_DblN_descend_se_Fishery(1)
 -15.0	15.0	-15		0		0	0		-50		0	0	0	0	0	0	0 #  Size_DblN_start_logit_Fishery(1)
--15.0	15.0	15		0		0	0		-50		0	0	0	0	0	0	0 #  Size_DblN_end_logit_Fishery(1)
+-1000	15.0	-1000	0		0	0		-50		0	0	0	0	0	0	0 #  Size_DblN_end_logit_Fishery(1)
                                                                                 
 ### Male Offset                                                                 
 -50		50		-20		0		0	0		2		0	0 	0	0	0	0	0 #  SzSel_Male_Peak_Fishery(1)
 -15		15		0		0		0	0		2		0	0 	0	0	0	0	0 #  SzSel_Male_Ascend_Fishery(1)
--20		0		0		0		0	0		-50		0	0 	0	0	0	0	0 #  SzSel_Male_Descend_Fishery(1)
--30		0		15		0		0	0		-50		0	0 	0	0	0	0	0 #  SzSel_Male_Final_Fishery(1)
-0		1		1		0		0	0		-50		0	0 	0	0	0	0	0 #  SzSel_Male_Scale_Fishery(1)
+-20		2		0		0		0	0		2		0	0 	0	0	0	0	0 #  SzSel_Male_Descend_Fishery(1)
+-30		0		0		0		0	0		2		0	0 	0	0	0	0	0 #  SzSel_Male_Final_Fishery(1)
+0		1		0.8		0		0	0		-50		0	0 	0	0	0	0	0 #  SzSel_Male_Scale_Fishery(1)
 
+100		250		150		0		0	0		2		0	0	0	0	0	0	0 #  Size_DblN_peak_Historical_BayofFundy(3)
+-15.0	15.0	-15		0		0	0		-50		0	0	0	0	0	0	0 #  Size_DblN_top_logit_Historical_BayofFundy(3)
+-5.0	10.0	5		0		0	0		2		0	0	0	0	0	0	0 #  Size_DblN_ascend_se_Historical_BayofFundy(3)
+-5.0	20.0	5		0		0	0		2		0	0	0	0	0	0	0 #  Size_DblN_descend_se_Historical_BayofFundy(3)
+-1000	15.0	-999	0		0	0		-50		0	0	0	0	0	0	0 #  Size_DblN_start_logit_Historical_BayofFundy(3)
+-1000	15.0	-999	0		0	0		-50		0	0	0	0	0	0	0 #  Size_DblN_end_logit_Historical_BayofFundy(3)
 
 #
 0   #  use 2D_AR1 selectivity(0/1):  experimental feature
@@ -276,17 +287,16 @@
  #_6=mult_by_size-at-age_N
  #_7=mult_by_generalized_sizecomp
 #_Factor  Fleet  Value
-4 1 0.26
 -9999   1    0  # terminator
 
 
 #
-7 #_maxlambdaphase
+1 #_maxlambdaphase
 0 #_sd_offset; must be 1 if any growthCV, sigmaR, or survey extraSD is an estimated parameter
 # read 3 changes to default Lambdas (default value is 1.0)
 # Like_comp codes:  1=surv; 2=disc; 3=mnwt; 4=length; 5=age; 6=SizeFreq; 7=sizeage; 8=catch; 9=init_equ_catch; 
 # 10=recrdev; 11=parm_prior; 12=parm_dev; 13=CrashPen; 14=Morphcomp; 15=Tag-comp; 16=Tag-negbin; 17=F_ballpark; 18=initEQregime
-#like_comp fleet  phase  value  sizefreq_method
+#like_comp fleet  phase  value 
 -9999  1  1  1  1  #  terminator
 #R
 
