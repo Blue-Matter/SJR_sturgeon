@@ -102,7 +102,7 @@ plot_catch <- function(replist = r4ss::SS_output(file.path(getwd(), "SS", "03A_S
     abline(h = 0, col = "grey")
     lines(cat$Yr, cat$`obs_cat:_3` + cat$`obs_cat:_4`, lwd = 3)
     lines(cat$Yr, cat$`obs_cat:_5`, col = "red", lwd = 3)
-    legend("topleft", c("SJR (pre-2007)", "Bay of Fundy"), col = c("black", "red"), lwd = 3)
+    legend("top", c("SJR (pre-2007)", "Bay of Fundy"), col = c("black", "red"), lwd = 3)
   } else {
     # Modern fishery
     cat <- dplyr::filter(cat, Yr >= 2007)
@@ -137,31 +137,33 @@ plot_CAL <- function(replist, fleet = 1, fleetname = "SJR F", plotfit = TRUE) {
   }
 }
 
-report_table <- function(replist, fleet) {
-  ts_B <- replist$timeseries %>% dplyr::filter(Era == "INIT" | Era == "TIME")
-  ts_F <- replist$derived_quants[replist$derived_quants$Label %in% paste0("F_", replist$startyr:replist$endyr), ]
 
-  get_SSN <- function() {
-    age_mat <- read.csv("processed_data/mat_age.csv")
-    NF <- replist$natage %>% dplyr::filter((`Beg/Mid` == "M" & Era == "TIME") | (`Beg/Mid` == "B" & Era == "INIT"), Sex == 1)
-    NM <- replist$natage %>% dplyr::filter((`Beg/Mid` == "M" & Era == "TIME") | (`Beg/Mid` == "B" & Era == "INIT"), Sex == 2)
-    list(SSN_F = colSums(t(NF[, -c(1:12)] %>% as.matrix()) * age_mat$Mat_F), 
-         SSN_M = colSums(t(NM[, -c(1:12)] %>% as.matrix()) * age_mat$Mat_M))
-  }
-  SSN <- get_SSN()
-  Fout <- numeric(length(replist$startyr:replist$endyr))
-  Fout[paste0("F_", replist$startyr:replist$endyr) %in% ts_F$Label] <- ts_F$Value
-  out <- data.frame(Year = ts_B$Yr, SSB = ts_B$SpawnBio %>% round(1), FM = c(0, Fout) %>% round(2), 
-                    SSN_F = SSN[[1]] * 1e3, SSN_M = SSN[[2]] * 1e3) %>% 
-    dplyr::mutate(SSN = round(SSN_F + SSN_M, 0), SSN_F = round(SSN_F), SSN_M = round(SSN_M))
-  if(!missing(fleet)) {
-    out_fleetF <- lapply(fleet, function(x) parse(text = paste0("ts_B$`F:_", x, "`")) %>% eval() %>% round(2)) %>% bind_cols()
-    out <- cbind(out, out_fleetF)
-  }
-  return(out)
-}
 
 compare_SSN <- function(report, model_names) {
+  report_table <- function(replist, fleet) {
+    ts_B <- replist$timeseries %>% dplyr::filter(Era == "INIT" | Era == "TIME")
+    ts_F <- replist$derived_quants[replist$derived_quants$Label %in% paste0("F_", replist$startyr:replist$endyr), ]
+    
+    get_SSN <- function() {
+      age_mat <- read.csv("processed_data/mat_age.csv")
+      NF <- replist$natage %>% dplyr::filter((`Beg/Mid` == "M" & Era == "TIME") | (`Beg/Mid` == "B" & Era == "INIT"), Sex == 1)
+      NM <- replist$natage %>% dplyr::filter((`Beg/Mid` == "M" & Era == "TIME") | (`Beg/Mid` == "B" & Era == "INIT"), Sex == 2)
+      list(SSN_F = colSums(t(NF[, -c(1:12)] %>% as.matrix()) * age_mat$Mat_F), 
+           SSN_M = colSums(t(NM[, -c(1:12)] %>% as.matrix()) * age_mat$Mat_M))
+    }
+    SSN <- get_SSN()
+    Fout <- numeric(length(replist$startyr:replist$endyr))
+    Fout[paste0("F_", replist$startyr:replist$endyr) %in% ts_F$Label] <- ts_F$Value
+    out <- data.frame(Year = ts_B$Yr, SSB = ts_B$SpawnBio %>% round(1), FM = c(0, Fout) %>% round(2), 
+                      SSN_F = SSN[[1]] * 1e3, SSN_M = SSN[[2]] * 1e3) %>% 
+      dplyr::mutate(SSN = round(SSN_F + SSN_M, 0), SSN_F = round(SSN_F), SSN_M = round(SSN_M))
+    if(!missing(fleet)) {
+      out_fleetF <- lapply(fleet, function(x) parse(text = paste0("ts_B$`F:_", x, "`")) %>% eval() %>% round(2)) %>% bind_cols()
+      out <- cbind(out, out_fleetF)
+    }
+    return(out)
+  }
+  
   Map(function(x, y) report_table(x) %>% dplyr::mutate(Model = y), x = report, y = model_names) %>%
     dplyr::bind_rows()
 }
@@ -265,6 +267,9 @@ compare_CAL <- function(report, model_names, fleet = 1, gender = 1, fleetname = 
   CALobs <- dplyr::filter(report[[1]]$lendbase, Fleet == fleet, sex == gender) %>% dplyr::select(Yr, Bin, Obs) %>% 
     reshape2::melt(id.vars = c("Yr", "Bin"))
   
+  N <- dplyr::filter(report[[1]]$lendbase, Fleet == fleet, sex == gender) %>% dplyr::select(Yr, Nsamp_in, Bin, Obs) %>%
+    group_by(Yr) %>% summarise(Nsamp = unique(Nsamp_in), y = max(Obs))
+  
   if(!obs_only) {
     CALpred <- Map(function(x, model_name) {
       res <- dplyr::filter(report[[x]]$lendbase, Fleet == fleet, sex == gender) %>% dplyr::select(Yr, Bin, Exp) %>% 
@@ -273,11 +278,13 @@ compare_CAL <- function(report, model_names, fleet = 1, gender = 1, fleetname = 
     }, x = 1:length(report), model_name = model_names) %>% dplyr::bind_rows()
     
     ggplot(CALpred, aes(Bin, value)) + facet_wrap(~Yr, scales = "free_y") +
+      geom_text(data = N, x = max(CALobs$Bin), aes(label = Nsamp, y = y), hjust = "inward", vjust = "inward") + 
       geom_line(data = CALobs) + geom_point(data = CALobs) +
       geom_line(aes(colour = Model)) + geom_point(aes(colour = Model)) + theme_bw() +
       labs(x = "Length (cm)", y = "Proportion") + ggtitle(fleetname)
   } else {
     ggplot(CALobs, aes(Bin, value)) + facet_wrap(~Yr, scales = "free_y") +
+      geom_text(data = N, x = max(CALobs$Bin), aes(label = Nsamp, y = y), hjust = "inward", vjust = "inward") + 
       geom_line() + geom_point() +
       theme_bw() +
       labs(x = "Length (cm)", y = "Proportion") + ggtitle(fleetname)
@@ -288,6 +295,9 @@ compare_CAA <- function(report, model_names, fleet = 3, gender = 0, fleetname = 
   CAAobs <- dplyr::filter(report[[1]]$agedbase, Fleet == fleet, sex == gender) %>% dplyr::select(Yr, Bin, Obs) %>% 
     reshape2::melt(id.vars = c("Yr", "Bin"))
   
+  N <- dplyr::filter(report[[1]]$agedbase, Fleet == fleet, sex == gender) %>% dplyr::select(Yr, Nsamp_in, Obs) %>%
+    group_by(Yr) %>% summarise(Nsamp = unique(Nsamp_in), y = max(Obs))
+  
   if(!obs_only) {
     CAApred <- Map(function(x, model_name) {
       res <- dplyr::filter(report[[x]]$agedbase, Fleet == fleet, sex == gender) %>% dplyr::select(Yr, Bin, Exp) %>% 
@@ -296,14 +306,16 @@ compare_CAA <- function(report, model_names, fleet = 3, gender = 0, fleetname = 
     }, x = 1:length(report), model_name = model_names) %>% dplyr::bind_rows()
     
     ggplot(CAApred, aes(Bin, value)) + facet_wrap(~Yr, scales = "free_y") +
+      geom_text(data = N, x = max(CAAobs$Bin), aes(label = Nsamp, y = y), hjust = "inward", vjust = "inward") + 
       geom_line(data = CAAobs) + geom_point(data = CAAobs) +
       geom_line(aes(colour = Model)) + geom_point(aes(colour = Model)) + theme_bw() +
-      labs(x = "Length (cm)", y = "Proportion") + ggtitle(fleetname)
+      labs(x = "Age", y = "Proportion") + ggtitle(fleetname)
   } else {
     ggplot(CAAobs, aes(Bin, value)) + facet_wrap(~Yr, scales = "free_y") +
+      geom_text(data = N, x = max(CAAobs$Bin), aes(label = Nsamp, y = y), hjust = "inward", vjust = "inward") + 
       geom_line() + geom_point() +
       theme_bw() +
-      labs(x = "Length (cm)", y = "Proportion") + ggtitle(fleetname)
+      labs(x = "Age", y = "Proportion") + ggtitle(fleetname)
   }
 }
 
@@ -482,9 +494,10 @@ SSC_from_CSF <- function(dir) {
   Hist <- data.frame(Yr = replist$startyr:replist$endyr, Catch_F = catch_hist[[1]], Catch_M = catch_hist[[2]]) %>%
     mutate(Catch_T = Catch_F + Catch_M, ratio_F = Catch_F/Catch_T)
   
-  catch_proj <- lapply(1:2, get_catch_series, year = replist$endyr + 1:replist$nforecastyears, num = TRUE, ff = 1)
+  catch_proj <- lapply(1:2, get_catch_series, year = replist$startyr:(replist$endyr + replist$nforecastyears), 
+                       num = FALSE, ff = 1)
   
-  proj <- data.frame(Yr = replist$endyr + 1:replist$nforecastyears, 
+  proj <- data.frame(Yr = replist$startyr:(replist$endyr + replist$nforecastyears), 
                      Catch_F = catch_proj[[1]], Catch_M = catch_proj[[2]]) %>%
     mutate(Catch_T = Catch_F + Catch_M, ratio_F = Catch_F/Catch_T)
   
@@ -546,4 +559,51 @@ SSC_from_SSF <- function(dir) {
     mutate(Catch_T = Catch_F + Catch_M, ratio_F = Catch_F/Catch_T)
   
   list(Hist = Hist, Minas = Minas, proj = proj)
+}
+
+
+do_forecast_estimates <- function(report, model_names, FSPR = 0.06, F01 = 0.1) {
+  report_table <- function(replist, fleet) {
+    ts_B <- replist$timeseries %>% dplyr::filter(Era != "VIRG")
+    ts_F <- replist$derived_quants[replist$derived_quants$Label %in% 
+                                     paste0("F_", replist$startyr:(replist$endyr + replist$nforecastyears)), ]
+    
+    Fout <- numeric(length(replist$startyr:(replist$endyr + replist$nforecastyears)))
+    Fout[paste0("F_", replist$startyr:(replist$endyr + replist$nforecastyears)) %in% ts_F$Label] <- ts_F$Value
+    
+    SSB_MSY <- replist$derived_quants$Value[replist$derived_quants$Label %in% "SSB_MSY"]
+    SSB0 <- replist$derived_quants$Value[replist$derived_quants$Label %in% "SSB_unfished"]
+    
+    get_SSN <- function() {
+      age_mat <- read.csv("processed_data/mat_age.csv")
+      NF <- dplyr::filter(replist$natage, `Beg/Mid` == "B", Era == "VIRG", Sex == 1)[, -c(1:12)] * age_mat$Mat_F
+      NM <- dplyr::filter(replist$natage, `Beg/Mid` == "B", Era == "VIRG", Sex == 2)[, -c(1:12)] * age_mat$Mat_M
+      sum(NF) + sum(NM)
+    }
+    SSN0 <- 1e3 * get_SSN()
+    
+    out <- data.frame(Year = ts_B$Yr, 
+                      SSB = ts_B$SpawnBio %>% round(1), FM = c(0, Fout) %>% round(3),
+                      SSB_MSY = SSB_MSY, SSB0 = SSB0, SSN0 = SSN0)
+    
+    if(!missing(fleet)) {
+      out_fleetF <- lapply(fleet, function(x) parse(text = paste0("ts_B$`F:_", x, "`")) %>% eval()) %>% bind_cols()
+      out <- cbind(out, out_fleetF)
+    }
+    return(out)
+  }
+  
+  out <- Map(function(x, y) report_table(x) %>% dplyr::mutate(Model = y), x = report, y = model_names) %>%
+    dplyr::bind_rows()
+  y2020 <- dplyr::filter(out, Year == 2020)
+  y2030 <- dplyr::filter(out, Year == 2030)
+  F_ref <- dplyr::filter(out, Year %in% seq(2018, 2020)) %>% group_by(Model) %>% summarise(F_ref = mean(FM))
+  
+  y2020 <- dplyr::left_join(y2020, F_ref, by = "Model")
+  
+  data.frame(Model = y2020$Model, SSB0 = y2020$SSB0, SSN0 = y2020$SSN0,
+             SSB_MSY = y2020$SSB_MSY, SSB_2020 = y2020$SSB, SSB_MSY_2020 = y2020$SSB/y2020$SSB_MSY,
+             Fref_2020 = y2020$F_ref, FSPR_2020 = y2020$F_ref/FSPR, F01_2020 = y2020$F_ref/F01,
+             SSB_2030 = y2030$SSB, SSB_MSY_2030 = y2030$SSB/y2020$SSB_MSY,
+             FM_2030 = y2030$FM, FSPR_2030 = y2030$FM/FSPR, F01_2030 = y2030$FM/F01)
 }

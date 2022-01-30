@@ -123,7 +123,7 @@ steepness_fn <- function(seed = 1, M = 0.06, N = 200, spawn_freq = 1,
 
 get_mat_age <- function(replist) {
   if(missing(replist)) {
-    replist <- r4ss::SS_output(file.path(getwd(), "SS", "01_base"))
+    replist <- r4ss::SS_output(file.path(getwd(), "SS", "01A_CSF_0.6BOF"))
   }
   Len_Mat <- dplyr::filter(replist$endgrowth, Sex == 1)$Len_Mat
   return(Len_Mat)
@@ -160,6 +160,7 @@ run_sim <- Map(steepness_fn, seed = seeds, M = M,
                MoreArgs = list(mat_at_age = mat_at_age, N = 500, spawn_freq = 0.25,
                                sex_ratio = 0.5, surv_larval = 0.1))
 h <- run_sim %>% sapply(getElement, "h")
+mean(h)
 hist(h)
 
 alpha <- run_sim %>% sapply(getElement, "alpha")

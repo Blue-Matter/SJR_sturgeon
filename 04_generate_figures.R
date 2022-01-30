@@ -38,7 +38,7 @@ r4ss::SSplotIndices(replist, subplots = 1)
 dev.off()
 
 ##### Catch
-png("figures/data/catch_hist.png", height = 4, width = 6, res = 400, units = "in")
+png("figures/data/catch_hist.png", height = 3, width = 5, res = 400, units = "in")
 par(mar = c(5, 4, 1, 1))
 plot_catch(type = "wt")
 dev.off()
@@ -50,16 +50,16 @@ dev.off()
 
 # Length data
 compare_CAL(list(replist), obs_only = TRUE, fleet = 1, gender = 1, fleetname = "SJR F")
-ggsave("figures/data/CAL_SJR_F.png", height = 6, width = 8)
+ggsave("figures/data/CAL_SJR_F.png", height = 5, width = 7)
 
 compare_CAL(list(replist), obs_only = TRUE, fleet = 1, gender = 2, fleetname = "SJR M")
-ggsave("figures/data/CAL_SJR_M.png", height = 6, width = 8)
+ggsave("figures/data/CAL_SJR_M.png", height = 5, width = 7)
 
 compare_CAL(list(replist), obs_only = TRUE, fleet = 3, gender = 0, fleetname = "BOF")
-ggsave("figures/data/CAL_BOF.png", height = 3, width = 4)
+ggsave("figures/data/CAL_BOF.png", height = 2.5, width = 3)
 
 compare_CAA(list(replist), obs_only = TRUE, fleetname = "BOF")
-ggsave("figures/data/CAA_BOF.png", height = 3, width = 4)
+ggsave("figures/data/CAA_BOF.png", height = 2.5, width = 3)
 
 #png("figures/data/CAL_SJR.png", height = 4, width = 6, res = 400, units = "in")
 #r4ss::SSplotComps(replist, datonly = TRUE, showeffN = FALSE, subplots = 1, fleets = 1)
@@ -86,9 +86,19 @@ par(mar = c(5, 4, 1, 1))
 plot_sel_mat(replist, "age")
 dev.off()
 
+png("figures/assess/sel_mat_length_dome.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+plot_sel_mat(replist)
+dev.off()
+
+png("figures/assess/sel_mat_age_dome.png", height = 4, width = 6, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+plot_sel_mat(replist, "age")
+dev.off()
+
 ##### Plot individual model fits
 # Fits in SSF 0.6BOF
-png("figures/assess/long_model_index_fit.png", height = 4, width = 6, res = 400, units = "in")
+png("figures/assess/long_model_index_fit.png", height = 3, width = 4.5, res = 400, units = "in")
 par(mar = c(5, 4, 1, 1))
 r4ss::SSplotIndices(replist, subplots = 2)
 dev.off()
@@ -115,17 +125,23 @@ png("figures/assess/long_model_summary_F.png", height = 4, width = 6, res = 400,
 plot_summary_F(replist, ylim = c(0, 0.14))
 dev.off()
 
-compare_CAL(list(replist), "Fit", fleet = 1, gender = 1, fleetname = "SJR F")
-ggsave("figures/assess/long_model_CAL_SJR_F.png", height = 6, width = 8)
+compare_CAL(list(replist), "Fit", fleet = 1, gender = 1, fleetname = "SJR F") + theme(legend.position = "none")
+ggsave("figures/assess/long_model_CAL_SJR_F_dome.png", height = 5, width = 7)
 
-compare_CAL(list(replist), "Fit", fleet = 1, gender = 2, fleetname = "SJR M")
-ggsave("figures/assess/long_model_CAL_SJR_M.png", height = 6, width = 8)
+compare_CAL(list(replist), "Fit", fleet = 1, gender = 2, fleetname = "SJR M") + theme(legend.position = "none")
+ggsave("figures/assess/long_model_CAL_SJR_M_dome.png", height = 5, width = 7) 
 
-compare_CAL(list(replist), "Fit", fleet = 3, gender = 0, fleetname = "BOF")
-ggsave("figures/assess/long_model_CAL_BOF.png", height = 3, width = 4)
+compare_CAL(list(replist), "Fit", fleet = 1, gender = 1, fleetname = "SJR F") + theme(legend.position = "none")
+ggsave("figures/assess/long_model_CAL_SJR_F.png", height = 5, width = 7)
 
-compare_CAA(list(replist), "Fit", fleetname = "BOF")
-ggsave("figures/assess/long_model_CAA_BOF.png", height = 3, width = 4)
+compare_CAL(list(replist), "Fit", fleet = 1, gender = 2, fleetname = "SJR M") + theme(legend.position = "none")
+ggsave("figures/assess/long_model_CAL_SJR_M.png", height = 5, width = 7) 
+
+compare_CAL(list(replist), "Fit", fleet = 3, gender = 0, fleetname = "BOF") + theme(legend.position = "none")
+ggsave("figures/assess/long_model_CAL_BOF.png", height = 2.5, width = 3)
+
+compare_CAA(list(replist), "Fit", fleetname = "BOF") + theme(legend.position = "none")
+ggsave("figures/assess/long_model_CAA_BOF.png", height = 2.5, width = 3)
 
 # Plot residuals
 make_residuals <- function(replist, fleet = 1, gender = 1, type = c("age", "length")) {
@@ -143,11 +159,20 @@ make_residuals <- function(replist, fleet = 1, gender = 1, type = c("age", "leng
   } else {
     out <- replist$agedbase
   }
-  
-  
-  
-  
 }
+
+# Plot SSB and F
+compare_SSB(list(replist), model_names = "Fit") + theme(legend.position = "none")
+ggsave("figures/assess/reference_model_SSB.png", height = 2, width = 3.5)
+
+compare_SSB(list(replist), model_names = "Fit", type = "SSBMSY") + theme(legend.position = "none")
+ggsave("figures/assess/reference_model_SSBMSY.png", height = 2, width = 3.5)
+
+compare_F(list(replist), model_names = "Fit") + theme(legend.position = "none")
+ggsave("figures/assess/reference_model_F.png", height = 2, width = 3.5)
+
+compare_F(list(replist), model_names = "Fit") + theme(legend.position = "none") + coord_cartesian(ylim = c(0, 0.2))
+ggsave("figures/assess/reference_model_F2.png", height = 2, width = 3.5)
 
 # Plot SSN
 sum_table <- report_table(replist, fleet = c(1, 2, 3))
@@ -167,11 +192,11 @@ dev.off()
 report <- lapply(c("01A_CSF_0.3BOF", "01A_CSF_0.6BOF", "01A_CSF_0.9BOF"), 
                  function(x) r4ss::SS_output(file.path(getwd(), "SS", x)))
 
-compare_SSB(report, model_names = c("30%", "60%", "90%") %>% paste("BOF"))
-ggsave("figures/assess/compare_SSB_BOF.png", height = 4, width = 7)
+compare_SSB(report, model_names = c("30%", "60%", "90%") %>% paste("BOF")) + theme(legend.position = "none")
+ggsave("figures/assess/compare_SSB_BOF.png", height = 2.5, width = 4)
 
-compare_SSB(report, model_names = c("30%", "60%", "90%") %>% paste("BOF"), type = "SSBMSY")
-ggsave("figures/assess/compare_SSBMSY_BOF.png", height = 4, width = 7)
+compare_SSB(report, model_names = c("30%", "60%", "90%") %>% paste("BOF"), type = "SSBMSY") + theme(legend.position = "bottom")
+ggsave("figures/assess/compare_SSBMSY_BOF.png", height = 3, width = 4)
 
 compare_SSB(report, model_names = c("30%", "60%", "90%") %>% paste("BOF"), type = "SSB0")
 ggsave("figures/assess/compare_SSB0_BOF.png", height = 4, width = 7)
@@ -191,20 +216,34 @@ lapply(report, SSC_from_CSF) %>% lapply(getElement, "proj")
 report <- lapply(c("01A_CSF_0.6BOF", "03A_SSF_0.6BOF"), 
                  function(x) r4ss::SS_output(file.path(getwd(), "SS", x)))
 
-compare_SSB(report, model_names = c("Reference model", "SSF"))
-ggsave("figures/assess/compare_SSB_fleet_structure.png", height = 4, width = 7)
+compare_SSB(report, model_names = c("Reference model", "SSF")) + theme(legend.position = "none")
+ggsave("figures/assess/compare_SSB_fleet_structure.png", height = 2.5, width = 4)
 
-compare_SSB(report, model_names = c("Reference model", "SSF"), type = "SSBMSY")
-ggsave("figures/assess/compare_SSBMSY_fleet_structure.png", height = 4, width = 7)
+compare_SSB(report, model_names = c("Reference model", "SSF"), type = "SSBMSY")  + theme(legend.position = "bottom")
+ggsave("figures/assess/compare_SSBMSY_fleet_structure.png", height = 3, width = 4)
 
 compare_SSB(report, model_names = c("Reference model", "SSF"), type = "SSB0")
 ggsave("figures/assess/compare_SSB0_fleet_structure.png", height = 4, width = 7)
 
+# Compare dome vs. logistic
+report <- lapply(c("01A_CSF_0.6BOF", "01A_CSF_0.6BOF_dome"), 
+                 function(x) r4ss::SS_output(file.path(getwd(), "SS", x)))
+
+compare_SSB(report, model_names = c("Reference model", "SJR Dome")) + theme(legend.position = "none")
+ggsave("figures/assess/compare_SSB_dome.png", height = 2.5, width = 4)
+
+compare_SSB(report, model_names = c("Reference model", "SJR Dome"), type = "SSBMSY")  + theme(legend.position = "bottom")
+ggsave("figures/assess/compare_SSBMSY_dome.png", height = 3, width = 4)
+
+compare_SSB(report, model_names = c("Reference model", "SJR Dome"), type = "SSB0")
+ggsave("figures/assess/compare_SSB0_dome.png", height = 4, width = 7)
+
 
 sex_ratio <- SSC_from_CSF("01A_CSF_0.6BOF") 
-png("figures/assess/sex_ratio_CSF.png", height = 4, width = 6, res = 400, units = "in")
+png("figures/assess/sex_ratio_CSF.png", height = 3, width = 4, res = 400, units = "in")
 par(mar = c(5, 4, 1, 1))
 plot(ratio_F ~ Yr, sex_ratio$Hist, typ = "o", pch = 16, xlab = "Year", ylab = "Percent Female (by weight)")
+#lines(ratio_F ~ Yr, sex_ratio$proj %>% dplyr::filter(Yr %in% seq(2007, 2020)), typ = "o", pch = 16)
 dev.off()
 
 ref_pt_SSF <- data.frame(`Ref.pt.` = c("F0.1", "F50%"), value = c(0.13, 0.06))
@@ -217,7 +256,6 @@ ggsave("figures/assess/compare_F_fleet_structure.png", height = 4, width = 7)
 lapply(report, SSC_from_CSF) %>% lapply(getElement, "proj")
 
 # Long model with tags
-
 report <- lapply(c("01A_CSF_0.6BOF", "01A_CSF_0.6BOF_tags"), 
                  function(x) r4ss::SS_output(file.path(getwd(), "SS", x)))
 
@@ -249,11 +287,13 @@ lapply(report, SSC_from_CSF) %>% lapply(getElement, "proj")
 report <- lapply(c("01A_CSF_0.6BOF", "01A_CSF_0.6BOF_maxF1", "01A_CSF_0.6BOF_maxF6"), 
                  function(x) r4ss::SS_output(file.path(getwd(), "SS", x)))
 
-compare_SSB(report, model_names = c("3", "1", "6")) + scale_colour_discrete(name = "Max. F")
-ggsave("figures/assess/compare_SSB_maxF.png", height = 4, width = 7)
+compare_SSB(report, model_names = c("3", "1", "6")) + #scale_colour_discrete(name = "Max. F") +
+  theme(legend.position = "none")
+ggsave("figures/assess/compare_SSB_maxF.png", height = 2.5, width = 4)
 
-compare_SSB(report, model_names = c("3", "1", "6"), type = "SSBMSY") + scale_colour_discrete(name = "Max. F")
-ggsave("figures/assess/compare_SSBMSY_maxF.png", height = 4, width = 7)
+compare_SSB(report, model_names = c("3", "1", "6"), type = "SSBMSY") + scale_colour_discrete(name = "Max. F") +
+  theme(legend.position = "bottom")
+ggsave("figures/assess/compare_SSBMSY_maxF.png", height = 3, width = 4)
 
 compare_SSB(report, model_names = c("3", "1", "6"), type = "SSB0") + scale_colour_discrete(name = "Max. F")
 ggsave("figures/assess/compare_SSB0_maxF.png", height = 4, width = 7)

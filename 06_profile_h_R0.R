@@ -10,53 +10,58 @@ do_profile <- function(dir, linenum, prof_vec) {
 
 
 # Profile steepness in the SSF
-dir <- "03A_SSF_0.6BOF_profh"
-h <- seq(0.45, 0.85, 0.05)
-do_profile(dir, 118, h)
+#dir <- "03A_SSF_0.6BOF_profh"
+#h <- seq(0.45, 0.85, 0.05)
+#do_profile(dir, 118, h)
+#
+#profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyvec = 1:length(h))
+#profilesum <- r4ss::SSsummarize(profilemodels)
+#
+#png("figures/assess/profile_h.png", height = 4, width = 6, res = 400, units = "in")
+#par(mar = c(5, 4, 1, 1))
+#r4ss::SSplotProfile(profilesum)
+#abline(v = 0.6, lty = 3)
+#dev.off()
+#
+#dir <- "03A_SSF_0.6BOF_profh_downweight_CAL"
+#h <- seq(0.45, 0.85, 0.05)
+#do_profile(dir, 118, h)
+#
+#profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyvec = 1:length(h))
+#profilesum <- r4ss::SSsummarize(profilemodels)
+#
+#png("figures/assess/profile_h_downweight_CAL.png", height = 4, width = 6, res = 400, units = "in")
+#par(mar = c(5, 4, 1, 1))
+#r4ss::SSplotProfile(profilesum, legendloc = "topleft")
+#abline(v = 0.6, lty = 3)
+#dev.off()
+#
+#compare_SSB(profilemodels, model_names = paste("h =", format(h)))
+#ggsave("figures/assess/profile_h_SSB.png", height = 4, width = 7)
+#
+#compare_SSB(profilemodels, model_names = paste("h =", format(h)), type = "SSBMSY")
+#ggsave("figures/assess/profile_h_SSBMSY.png", height = 4, width = 7)
+#
+#compare_SSB(profilemodels, model_names = paste("h =", format(h)), type = "SSB0")
+#ggsave("figures/assess/profile_h_SSB0.png", height = 4, width = 7)
+#
+#compare_CAL(profilemodels, model_names = paste("h =", format(h)), fleet = 1, "SJR F")
+#compare_CAL(profilemodels, model_names = paste("h =", format(h)), fleet = 2, "SJR M")
+#compare_CAL(profilemodels, model_names = paste("h =", format(h)), fleet = 5, "BOF")
+#
+#compare_recruitment(profilemodels, model_names = paste("h =", format(h)))
+#ggsave("figures/assess/profile_h_recruitment.png", height = 4, width = 7)
+#
+#ref_pt_SSF <- data.frame(`Ref.pt.` = c("F0.1", "F50%"), value = c(0.1, 0.06))
+#compare_F(profilemodels, model_names = paste("h =", format(h)), type2 = "summary", ylim = c(0, 0.15)) +
+#  geom_hline(data = ref_pt_SSF, aes(yintercept = value, linetype = `Ref.pt.`))
+#ggsave("figures/assess/profile_h_F.png", height = 4, width = 7)
 
-profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyvec = 1:length(h))
-profilesum <- r4ss::SSsummarize(profilemodels)
 
-png("figures/assess/profile_h.png", height = 4, width = 6, res = 400, units = "in")
-par(mar = c(5, 4, 1, 1))
-r4ss::SSplotProfile(profilesum)
-abline(v = 0.6, lty = 3)
-dev.off()
-
-dir <- "03A_SSF_0.6BOF_profh_downweight_CAL"
-h <- seq(0.45, 0.85, 0.05)
-do_profile(dir, 118, h)
-
-profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyvec = 1:length(h))
-profilesum <- r4ss::SSsummarize(profilemodels)
-
-png("figures/assess/profile_h_downweight_CAL.png", height = 4, width = 6, res = 400, units = "in")
-par(mar = c(5, 4, 1, 1))
-r4ss::SSplotProfile(profilesum, legendloc = "topleft")
-abline(v = 0.6, lty = 3)
-dev.off()
-
-compare_SSB(profilemodels, model_names = paste("h =", format(h)))
-ggsave("figures/assess/profile_h_SSB.png", height = 4, width = 7)
-
-compare_SSB(profilemodels, model_names = paste("h =", format(h)), type = "SSBMSY")
-ggsave("figures/assess/profile_h_SSBMSY.png", height = 4, width = 7)
-
-compare_SSB(profilemodels, model_names = paste("h =", format(h)), type = "SSB0")
-ggsave("figures/assess/profile_h_SSB0.png", height = 4, width = 7)
-
-compare_CAL(profilemodels, model_names = paste("h =", format(h)), fleet = 1, "SJR F")
-compare_CAL(profilemodels, model_names = paste("h =", format(h)), fleet = 2, "SJR M")
-compare_CAL(profilemodels, model_names = paste("h =", format(h)), fleet = 5, "BOF")
-
-compare_recruitment(profilemodels, model_names = paste("h =", format(h)))
-ggsave("figures/assess/profile_h_recruitment.png", height = 4, width = 7)
-
-ref_pt_SSF <- data.frame(`Ref.pt.` = c("F0.1", "F50%"), value = c(0.1, 0.06))
-compare_F(profilemodels, model_names = paste("h =", format(h)), type2 = "summary", ylim = c(0, 0.15)) +
-  geom_hline(data = ref_pt_SSF, aes(yintercept = value, linetype = `Ref.pt.`))
-ggsave("figures/assess/profile_h_F.png", height = 4, width = 7)
-
+# Profile steepness in the CSF
+dir <- "01A_CSF_0.6BOF_dome_profh"
+h <- seq(0.2, 1, 0.1); h[1] <- 0.21; h[9] <- 0.99
+do_profile(dir, 116, h)
 
 
 # Profile steepness in the CSF
@@ -73,12 +78,12 @@ profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyve
 #abline(v = 0.6, lty = 3)
 #dev.off()
 
-compare_SSB(profilemodels, model_names = paste("h =", format(h)))
-ggsave("figures/assess/profile_h_SSB_CSF.png", height = 4, width = 7)
+compare_SSB(profilemodels, model_names = paste("h =", format(h))) + theme(legend.position = "none")
+ggsave("figures/assess/profile_h_SSB_CSF.png", height = 2.5, width = 4.5)
 
 compare_SSB(profilemodels, model_names = paste("h =", format(h)), type = "SSBMSY") + 
-  labs(y = expression(SSB/SSB[MSY]))
-ggsave("figures/assess/profile_h_SSBMSY_CSF.png", height = 4, width = 7)
+  theme(legend.position = "bottom") + guides(colour = guide_legend(nrow = 3, byrow=TRUE))
+ggsave("figures/assess/profile_h_SSBMSY_CSF.png", height = 3.5, width = 4.5)
 
 compare_SSB(profilemodels, model_names = paste("h =", format(h)), type = "SSB0")
 ggsave("figures/assess/profile_h_SSB0.png", height = 4, width = 7)
@@ -98,21 +103,67 @@ ggsave("figures/assess/profile_h_F_CSF.png", height = 4, width = 7)
 
 
 
-
-# Profile R0
-dir <- "03A_SSF_0.6BOF_profR0"
-R0 <- seq(1, 3, 0.25)
-do_profile(dir, 117, R0)
-
-
-profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyvec = 1:length(R0))
 profilesum <- r4ss::SSsummarize(profilemodels)
 
-png("figures/assess/profile_R0.png", height = 4, width = 6, res = 400, units = "in")
+png("figures/assess/profile_h.png", height = 3, width = 5, res = 400, units = "in")
 par(mar = c(5, 4, 1, 1))
-r4ss::SSplotProfile(profilesum, profile.string = "R0", profile.label = "log(R0)")
-abline(v = 1.74, lty = 3)
+r4ss::SSplotProfile(profilesum, profile.label = "Steepness", legendloc = "topleft")
+abline(v = 0.6, lty = 3)
 dev.off()
+
+dir <- "01A_CSF_0.6BOF_profh2"
+h <- seq(0.2, 1, 0.1); h[9] <- 0.99; h[1] <- 0.21
+do_profile(dir, 116, h)
+
+compare_F(profilemodels[2:7], model_names = paste("h =", format(h))[2:7]) + coord_cartesian(ylim = c(0, 0.75)) +
+  theme(legend.position = "bottom")
+ggsave("figures/assess/profile_h_full_F_CSF.png", height = 3.5, width = 4)
+
+compare_SSB(profilemodels[2:7], model_names = paste("h =", format(h))[2:7]) + theme(legend.position = "none")
+ggsave("figures/assess/profile_h_SSB_CSF.png", height = 2.5, width = 4)
+
+compare_SSB(profilemodels[2:7], model_names = paste("h =", format(h))[2:7], type = "SSBMSY") + 
+  theme(legend.position = "bottom") #+ guides(colour = guide_legend(nrow = 2, byrow=TRUE))
+ggsave("figures/assess/profile_h_SSBMSY_CSF.png", height = 3, width = 4)
+
+
+profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyvec = 1:length(h))
+profilesum <- r4ss::SSsummarize(profilemodels)
+
+png("figures/assess/profile_h_full.png", height = 3, width = 5, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+r4ss::SSplotProfile(profilesum, profile.label = "Steepness", legendloc = "topleft")
+abline(v = 0.6, lty = 3)
+dev.off()
+
+
+dir <- "01A_CSF_0.6BOF_profh_downweight_CAL"
+h <- seq(0.45, 0.85, 0.05)
+do_profile(dir, 116, h)
+
+profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyvec = 1:length(h))
+profilesum <- r4ss::SSsummarize(profilemodels)
+
+png("figures/assess/profile_h_downweight_CAL.png", height = 3, width = 5, res = 400, units = "in")
+par(mar = c(5, 4, 1, 1))
+r4ss::SSplotProfile(profilesum, profile.label = "Steepness", legendloc = "topleft")
+abline(v = 0.6, lty = 3)
+dev.off()
+
+# Profile R0
+#dir <- "03A_SSF_0.6BOF_profR0"
+#R0 <- seq(1, 3, 0.25)
+#do_profile(dir, 117, R0)
+#
+#
+#profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyvec = 1:length(R0))
+#profilesum <- r4ss::SSsummarize(profilemodels)
+#
+#png("figures/assess/profile_R0.png", height = 4, width = 6, res = 400, units = "in")
+#par(mar = c(5, 4, 1, 1))
+#r4ss::SSplotProfile(profilesum, profile.string = "R0", profile.label = "log(R0)")
+#abline(v = 1.74, lty = 3)
+#dev.off()
 
 # Profile R0 in the CSF
 dir <- "01A_CSF_0.6BOF_profR0"
@@ -122,7 +173,7 @@ do_profile(dir, 115, R0)
 profilemodels <- r4ss::SSgetoutput(dirvec = file.path(getwd(), "SS", dir), keyvec = 1:length(R0))
 profilesum <- r4ss::SSsummarize(profilemodels)
 
-png("figures/assess/profile_R0_CSF.png", height = 4, width = 6, res = 400, units = "in")
+png("figures/assess/profile_R0_CSF.png", height = 3, width = 5, res = 400, units = "in")
 par(mar = c(5, 4, 1, 1))
 r4ss::SSplotProfile(profilesum, profile.string = "R0", profile.label = expression(log(R[0])))
 #abline(v = 1.52, lty = 3)

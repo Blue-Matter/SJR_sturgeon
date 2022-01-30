@@ -182,7 +182,7 @@ comp_mod$theta <- lapply(list(m0p, m1p, m2p, m3p, m4p, m5p, m0nb, m1nb, m2nb, m3
 write.csv(comp_mod, file = "tables/CPUE_AIC.csv")
 
 png("figures/data/CPUE_model_diagnostics.png", height = 8, width = 6, units = "in", res = 600)
-mout <- m3nb
+mout <- m5nb
 par(mfrow = c(3, 2), mar = c(5, 4, 1.5, 1))
 plot(mout, which = 1:3)
 
@@ -204,31 +204,22 @@ newdata <- expand.grid(yy = unique(data_mod$yy), mm = factor(c(5, 7, 8)),
                        offset = mean(log(data_mod$nets)))
 
 obs_cpue <- summarise(group_by(data_mod, yy), val = mean(log_cpue) %>% exp() %>% `-`(0.001),
-                      sd = sd(log_cpue))
-annual_cpue <- mutate(newdata, 
-                      m3nb = predict(m3nb, newdata = newdata[, -3]), 
-                      m4nb = predict(m4nb, newdata = newdata),
-                      m5nb = predict(m5nb, newdata = newdata),
-                      m3p = predict(m3p, newdata = newdata[, -3]), 
-                      m4p = predict(m4p, newdata = newdata),
-                      m5p = predict(m5p, newdata = newdata)) %>%
-  reshape2::melt(c("yy", "mm", "ln_Flow_Z", "offset")) %>% group_by(variable, yy) %>% 
-  summarise(val = mean(value) %>% exp(), sd = sd(value)) %>%
-  rbind(data.frame(yy = obs_cpue$yy, variable = "obs", val = obs_cpue$val, sd = obs_cpue$sd)) %>% 
-  group_by(variable) %>% mutate(rel_val = val/mean(val))
+                      se = sd(log_cpue)) %>% mutate(Type = "Observed")
 
+annual_cpue <- mutate(newdata, 
+                      val = predict(m5nb, newdata = newdata),
+                      se = predict(m5nb, newdata = newdata, se.fit = TRUE)$se.fit) %>%
+  group_by(yy) %>% summarise(val = mean(val) %>% exp(), se = mean(se)) %>% mutate(Type = "Standardized") %>%
+  rbind(obs_cpue) %>% group_by(Type) %>% mutate(yy = as.numeric(yy) + 2006, val = val/mean(val))
 write.csv(annual_cpue, "processed_data/cpue_series.csv")
 
-
-ggplot(annual_cpue %>% mutate(yy = as.numeric(yy)), aes(yy, sd, colour = variable)) + 
-  facet_wrap(~variable) + geom_line() + geom_point()
-
-ggplot(annual_cpue %>% mutate(yy = as.numeric(yy)), aes(yy, rel_val, colour = variable)) + 
-  facet_wrap(~variable) + geom_line() + geom_point()
-
-annual_cpue %>% mutate(yy = as.numeric(yy)) %>% dplyr::filter(variable %in% c("m5nb", "obs")) %>%
-  dplyr::mutate(Type = ifelse(variable == "m5nb", "Standardized", "Observed")) %>%
-  ggplot(aes(yy + 2006, rel_val, linetype = Type, shape = Type)) + geom_line() + geom_point() + theme_bw() +
-  labs(x = "Year", y = "CPUE (rescaled)") + coord_cartesian(ylim = c(0, 3)) + geom_hline(yintercept = 0, colour = "grey")
-ggsave("figures/data/CPUE_std_compare.png", height = 4, width = 7)
-  
+ggplot(annual_cpue, 
+       aes(yy, val)) + 
+  geom_line(aes(linetype = Type)) + geom_point(aes(shape = Type)) + 
+  #geom_linerange(data = dplyr::filter(annual_cpue, Type == "Standardized"),
+  #               aes(ymin = log(val) %>% `-`(1.96 * se) %>% exp(),
+  #                  ymax = log(val) %>% `+`(1.96 * se) %>% exp())) + 
+  scale_linetype_manual(values = c("Observed" = 3, "Standardized" = 1)) +
+  scale_shape_manual(values = c("Observed" = 1, "Standardized" = 16)) +
+  theme_bw() + labs(x = "Year", y = "Relative CPUE") + coord_cartesian(ylim = c(0, 3)) 
+ggsave("figures/data/standardized_CPUE.png", height = 2.5, width = 5)

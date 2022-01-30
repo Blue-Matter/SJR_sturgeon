@@ -29,8 +29,13 @@ retroSummary <- r4ss::SSsummarize(retroModels)
 endyrvec <- retroSummary$endyrs + seq(0, -10, -1)
 
 compare_SSB(retroModels[1:7], c("Reference", paste0("Retro ", endyrvec[2:7])), 
-            forecast = FALSE, retro_yr = endyrvec[1:7])
-ggsave("figures/assess/retro_CSF.png", height = 4, width = 7)
+            forecast = FALSE, retro_yr = endyrvec[1:7]) +
+  theme(legend.position = "bottom") + 
+  #coord_cartesian(xlim = c(2000, 2020), ylim = c(150, 200)) + 
+  #scale_colour_manual(values = c("black", gplots::rich.colors(6)) %>% 
+  #                      structure(names = c("Reference", paste0("Retro ", endyrvec[2:7])))) +
+  guides(colour = guide_legend(nrow = 3, byrow = TRUE))
+ggsave("figures/assess/retro_CSF.png", height = 3.5, width = 4)
 
 # Calculate Mohn's rho
 SSB_Mohns_rho <- function(dir, retro_yr) {
@@ -54,3 +59,4 @@ SSB_Mohns_rho <- function(dir, retro_yr) {
 }
 SSB_Mohns_rho(report[1:7], endyrvec[1:7])
 
+SSB_Mohns_rho(retroModels[1:7], endyrvec[1:7])
